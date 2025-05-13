@@ -1,0 +1,251 @@
+services:
+
+# -----------------------------------------------------------------------------
+# Required components for BidGPT : Keycloak, Minio, OpenSearch
+# -----------------------------------------------------------------------------
+
+  keycloak:
+    container_name: bidgpt-keycloak
+    image: mirror.gcr.io/keycloak/keycloak:25.0
+    environment:
+      KC_HTTP_ENABLE: true
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: Azerty123_
+    command:
+      - start-dev
+      - --import-realm
+    volumes:
+      - ./keycloak/bidgpt-realm.json:/opt/keycloak/data/import/bidgpt-realm.json
+    networks:
+      - bidgpt-network
+    ports:
+      - 0.0.0.0:8080:8080/tcp
+    healthcheck:
+      test: /opt/keycloak/bin/kcadm.sh get realms/bidgpt --fields id --server http://localhost:8080 --realm master --user $$KEYCLOAK_ADMIN --password $$KEYCLOAK_ADMIN_PASSWORD
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+      start_interval: 10s
+
+  opensearch:
+    container_name: bidgpt-opensearch
+    image: mirror.gcr.io/opensearchproject/opensearch:2.18.0
+    command:
+      - -Ediscovery.type=single-node
+    environment:
+      no_proxy: "*"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - ./opensearch/certs/:/usr/share/opensearch/config/certs/
+      - ./opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./opensearch/config/internal_users.yml:/usr/share/opensearch/config/opensearch-security/internal_users.yml
+      - ./opensearch/config/roles_mapping.yml:/usr/share/opensearch/config/opensearch-security/roles_mapping.yml
+      - ./opensearch/config/roles.yml:/usr/share/opensearch/config/opensearch-security/roles.yml
+      - ./opensearch/config/config.yml:/usr/share/opensearch/config/opensearch-security/config.yml
+    networks:
+      - bidgpt-network
+    ports:
+      -  0.0.0.0:9200:9200/tcp
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: curl --insecure https://localhost:9200/_cluster/health
+      interval: 60s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+      start_interval: 10s
+
+  opensearch-post-install-job:
+    container_name: bidgpt-opensearch-post-install-job
+    image: mirror.gcr.io/opensearchproject/opensearch:2.18.0
+    environment:
+      no_proxy: "*"
+    entrypoint:
+      - /bin/bash
+      - -c
+    command:
+      - >-
+        bash /opt/opensearch-post-install-job/create_users_and_roles.sh &&
+        bash /opt/opensearch-post-install-job/wait_for_os_init.sh &&
+        bash /opt/opensearch-post-install-job/create_indice.sh
+    volumes:
+      - ./opensearch/certs/:/usr/share/opensearch/config/certs/
+      - ./opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./opensearch/config/internal_users.yml:/usr/share/opensearch/config/opensearch-security/internal_users.yml
+      - ./opensearch/config/roles_mapping.yml:/usr/share/opensearch/config/opensearch-security/roles_mapping.yml
+      - ./opensearch/config/roles.yml:/usr/share/opensearch/config/opensearch-security/roles.yml
+      - ./opensearch/config/config.yml:/usr/share/opensearch/config/opensearch-security/config.yml
+      - ./opensearch-post-install-job/:/opt/opensearch-post-install-job/
+    networks:
+      - bidgpt-network
+    depends_on:
+      - opensearch
+
+  opensearch-dashboards:
+    container_name: bidgpt-opensearch-dashboards
+    image: mirror.gcr.io/opensearchproject/opensearch-dashboards:2.18.0
+    environment:
+      no_proxy: "*"
+    volumes:
+      - ./opensearch-dashboards/opensearch-dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
+      - ./opensearch/certs/:/usr/share/opensearch/config/certs/
+    networks:
+      - bidgpt-network
+    ports:
+      - 0.0.0.0:5601:5601/TCP
+    depends_on:
+      opensearch-post-install-job:
+        condition: service_completed_successfully
+    healthcheck:
+      test: curl --fail http://localhost:5601
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+      start_interval: 1s
+
+  minio:
+    container_name: bidgpt-minio
+    image: mirror.gcr.io/minio/minio:RELEASE.2025-02-07T23-21-09Z
+    environment:
+      NO_PROXY: "*"
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: Azerty123_
+      MINIO_IDENTITY_OPENID_CONFIG_URL: "http://bidgpt-keycloak:8080/realms/bidgpt/.well-known/openid-configuration"
+      MINIO_IDENTITY_OPENID_CLIENT_ID: "minio"
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET: "Azerty123_"
+      MINIO_IDENTITY_OPENID_CLAIM_NAME: "policy"
+      MINIO_IDENTITY_OPENID_SCOPES: "openid"
+      MINIO_IDENTITY_OPENID_REDIRECT_URI: "http://localhost:9001/oauth_callback"
+    command:
+      - server
+      - /data
+      - --console-address=:9001
+    networks:
+      - bidgpt-network
+    ports:
+      - 0.0.0.0:9000:9000/tcp
+      - 0.0.0.0:9001:9001/tcp
+    healthcheck:
+      test: curl --fail http://localhost:9000/minio/health/live
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+      start_interval: 1s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  minio-post-install-job:
+    container_name: bidgpt-minio-post-install-job
+    image: mirror.gcr.io/minio/minio:RELEASE.2025-02-07T23-21-09Z
+    environment:
+      NO_PROXY: "*"
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: Azerty123_
+    entrypoint:
+      - /bin/bash
+      - -c
+    command:
+      - |
+        mc alias set bidgpt-minio http://bidgpt-minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD
+        
+        # Create bucket
+        mc mb bidgpt-minio/bidgpt-dev-content
+
+        # Create Read Only user
+        mc admin user add bidgpt-minio bidgpt_ro Azerty123_
+        mc admin policy create bidgpt-minio bidgpt-minio-ro-policy /opt/minio/ro-policy.json
+        mc admin policy attach bidgpt-minio bidgpt-minio-ro-policy --user bidgpt_ro
+
+        # Create Read Write user
+        mc admin user add bidgpt-minio bidgpt_rw Azerty123_
+        mc admin policy create bidgpt-minio bidgpt-minio-rw-policy /opt/minio/rw-policy.json
+        mc admin policy attach bidgpt-minio bidgpt-minio-rw-policy --user bidgpt_rw
+    volumes:
+      - ./minio-post-install-job/:/opt/minio/
+    networks:
+      - bidgpt-network
+    depends_on:
+      minio:
+        condition: service_healthy
+
+# -----------------------------------------------------------------------------
+# BidGPT frontend and backends
+# -----------------------------------------------------------------------------
+
+  # backend-api:
+  #   image: bidgpt/backend-api:0.1-dev
+  #   container_name: bidgpt-backend-api
+  #   build:
+  #     context: ../../backend/bid_gpt
+  #     dockerfile: dockerfiles/Dockerfile-dev
+  #   environment:
+  #     no_proxy: "*"
+  #   env_file: ./backend/.env-docker-compose
+  #   entrypoint:
+  #     - python
+  #     - /app/bidgpt_app/main.py
+  #   volumes:
+  #     - ../../backend/bid_gpt:/app
+  #   networks:
+  #     - bidgpt-network
+  #   ports:
+  #     - "0.0.0.0:8000:8000/tcp"
+  #   depends_on:
+  #     opensearch-dashboards:
+  #       condition: service_healthy
+  #     minio-post-install-job:
+  #       condition: service_completed_successfully
+
+  # backend-knowledge:
+  #   image: bidgpt/backend-knowledge:0.1-dev
+  #   container_name: bidgpt-backend-knowledge
+  #   build:
+  #     context: ../../backend/knowledge_flow
+  #     dockerfile: dockerfiles/Dockerfile-dev
+  #   environment:
+  #     no_proxy: "*"
+  #   env_file: ./backend/.env-docker-compose
+  #   volumes:
+  #     - ../../backend/knowledge_flow:/app
+  #   networks:
+  #     - bidgpt-network
+  #   ports:
+  #     - "0.0.0.0:8111:8111/tcp"
+  #   depends_on:
+  #     opensearch-dashboards:
+  #       condition: service_healthy
+  #     minio-post-install-job:
+  #       condition: service_completed_successfully
+
+  # frontend:
+  #   image: bidgpt/frontend:0.1-dev
+  #   container_name: bidgpt-frontend
+  #   build:
+  #     context: ../../frontend
+  #     dockerfile: dockerfiles/Dockerfile-dev
+  #   environment:
+  #     NO_PROXY: "*"
+  #     VITE_BIDGPT_API_URL: http://localhost:8000
+  #     VITE_KNOWLEDGE_API_URL: http://localhost:8111
+  #     VITE_WEBSOCKET_URL: ws://localhost:8000/bidgpt/chatbot/query
+  #   volumes:
+  #     - ../../frontend:/app
+  #   networks:
+  #     - bidgpt-network
+  #   ports:
+  #     - "0.0.0.0:5173:5173/tcp"
+  #   depends_on:
+  #     - backend-api
+  #     - backend-knowledge
+
+networks:
+  bidgpt-network:

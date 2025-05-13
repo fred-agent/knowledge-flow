@@ -1,0 +1,269 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  },
+  "mappings": {
+    "properties": {
+      "agent_name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "answer": {
+        "properties": {
+          "content": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "filters": {
+            "properties": {
+              "hate": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "protected_material_code": {
+                "properties": {
+                  "detected": {
+                    "type": "boolean"
+                  },
+                  "filtered": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "protected_material_text": {
+                "properties": {
+                  "detected": {
+                    "type": "boolean"
+                  },
+                  "filtered": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "self_harm": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "sexual": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "violence": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "feedback": {
+        "type": "object"
+      },
+      "model": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "question": {
+        "properties": {
+          "content": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "filters": {
+            "properties": {
+              "hate": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "jailbreak": {
+                "properties": {
+                  "detected": {
+                    "type": "boolean"
+                  },
+                  "filtered": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "self_harm": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "sexual": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "violence": {
+                "properties": {
+                  "filtered": {
+                    "type": "boolean"
+                  },
+                  "severity": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "rank": {
+        "type": "long"
+      },
+      "session_id": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "session_title": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "timestamp": {
+        "type": "date"
+      },
+      "token_usage": {
+        "properties": {
+          "input_tokens": {
+            "type": "long"
+          },
+          "output_tokens": {
+            "type": "long"
+          },
+          "total_tokens": {
+            "type": "long"
+          }
+        }
+      },
+      "user_id": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      }
+    }
+  }
+}
