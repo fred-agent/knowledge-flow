@@ -4,9 +4,9 @@ from pathlib import Path
 
 from knowledge_flow_app.input_processors.base_input_processor import BaseMarkdownProcessor
 
-class TextMarkdownProcessor(BaseMarkdownProcessor):
+class MarkdownMarkdownProcessor(BaseMarkdownProcessor):
     def check_file_validity(self, file_path: Path) -> bool:
-        return file_path.exists() and file_path.suffix in [".txt", ".md"]
+        return file_path.exists() and file_path.suffix in [".md"]
 
     def extract_file_metadata(self, file_path: Path) -> dict:
         return {

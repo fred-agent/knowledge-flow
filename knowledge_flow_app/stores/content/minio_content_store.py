@@ -23,7 +23,7 @@ class MinioContentStore(BaseContentStore):
             self.client.make_bucket(bucket_name)
             logger.info(f"Bucket '{bucket_name}' created successfully.")
 
-    async def save_content(self, document_uid: str, document_dir: Path):
+    def save_content(self, document_uid: str, document_dir: Path):
         """
         Uploads all files in the given directory to MinIO,
         preserving the document UID as the root prefix.
@@ -41,3 +41,25 @@ class MinioContentStore(BaseContentStore):
                 except S3Error as e:
                     logger.error(f"Failed to upload '{file_path}': {e}")
                     raise ValueError(f"Failed to upload '{file_path}': {e}")
+                
+
+    def delete_content(self, document_uid: str) -> None:
+        """
+        Deletes all objects in the bucket under the given document UID prefix.
+        """
+        try:
+            objects_to_delete = self.client.list_objects(self.bucket_name, prefix=f"{document_uid}/", recursive=True)
+            deleted_any = False
+
+            for obj in objects_to_delete:
+                self.client.remove_object(self.bucket_name, obj.object_name)
+                logger.info(f"🗑️ Deleted '{obj.object_name}' from bucket '{self.bucket_name}'.")
+                deleted_any = True
+
+            if not deleted_any:
+                logger.warning(f"⚠️ No objects found to delete for document {document_uid}.")
+
+        except S3Error as e:
+            logger.error(f"❌ Failed to delete objects for document {document_uid}: {e}")
+            raise ValueError(f"Failed to delete document content from MinIO: {e}")
+

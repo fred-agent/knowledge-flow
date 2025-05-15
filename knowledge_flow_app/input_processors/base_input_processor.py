@@ -1,8 +1,8 @@
+import hashlib
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-import shortuuid
 import pandas
 
 logger = logging.getLogger(__name__)
@@ -13,22 +13,27 @@ class BaseInputProcessor(ABC):
     Base class for all processors that handle file metadata extraction and processing.
     This class provides a common interface and utility methods for file processing.
     """
-    def _generate_file_unique_id(self, metadata: dict) -> str:
+    def _generate_file_unique_id(self, metadata: dict, front_metadata: dict) -> str:
         """
         Generate a unique identifier for the file based on its metadata.
         This identifier is used to track the file in the system.
         """
-        return shortuuid.uuid()
-        #identifier_str = f"{metadata.get('document_name', '')}"
-        #return hashlib.sha256(identifier_str.encode('utf-8')).hexdigest()
+        #return shortuuid.uuid()
+        logger.error(f"MEEEERDE: {front_metadata}")
+        agent_name = front_metadata.get("agent_name", "unknown")
+       
+        document_name = metadata.get("document_name", "")
+        # Combine both fields into a deterministic string
+        identifier_str = f"{agent_name}::{document_name}"
+        return hashlib.sha256(identifier_str.encode('utf-8')).hexdigest()
 
-    def _add_common_metadata(self, file_path: Path) -> dict:
+    def _add_common_metadata(self, file_path: Path, front_metadata: dict) -> dict:
         common_metadata = {
             "document_name": file_path.name,
             "date_added_to_kb": datetime.now().isoformat(),
             "retrievable": True,
         }
-        common_metadata["document_uid"] = self._generate_file_unique_id(common_metadata)
+        common_metadata["document_uid"] = self._generate_file_unique_id(common_metadata, front_metadata)
         return common_metadata
 
     def _sanitize_front_metadata(self, front_metadata: dict) -> dict:
@@ -46,12 +51,30 @@ class BaseInputProcessor(ABC):
                 raise ValueError(f"Missing required metadata field: {field}")
 
     def process_metadata(self, file_path: Path, front_metadata: dict = None) -> dict:
+        """
+        Process the metadata of the input file.
+        This method is responsible for extracting metadata from the file and
+        validating it. It also generates a unique identifier for the file.
+
+        Args:
+            file_path (Path): The path to the input file.
+            front_metadata (dict): Additional metadata provided by the user. If None, defaults to an dictionary with "agent_name" set to "unknown".
+        Returns:
+            dict: A dictionary containing the processed metadata.
+        Raises:
+            ValueError: If the metadata is invalid or if required fields are missing.
+        """
         if not self.check_file_validity(file_path):
             return {"document_name": file_path.name, "error": "Invalid file structure"}
 
+        if front_metadata is None:
+            front_metadata = {
+                "agent_name": "unknown",
+            }
+
         final_metadata = {}
         file_metadata = self.extract_file_metadata(file_path)
-        common_metadata = self._add_common_metadata(file_path)
+        common_metadata = self._add_common_metadata(file_path, front_metadata)
 
         if front_metadata:
             final_metadata["front_metadata"] = self._sanitize_front_metadata(front_metadata)
@@ -80,6 +103,14 @@ class BaseMarkdownProcessor(BaseInputProcessor):
         file_path: Path, 
         output_dir: Path
     ) -> dict:
+        """
+        Convert the input file to a Markdown format and save it in the output directory.
+        Args:
+            file_path (Path): The path to the input file.
+            output_dir (Path): The directory where the converted file will be saved.
+        Returns:
+            dict: A dictionary containing the paths to the converted files.
+        """
         pass
 
 

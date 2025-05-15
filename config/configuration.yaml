@@ -20,6 +20,8 @@ input_processors:
     class_path: knowledge_flow_app.input_processors.csv_tabular_processor.csv_tabular_processor.CsvTabularProcessor
   - prefix: ".txt"
     class_path: knowledge_flow_app.input_processors.text_markdown_processor.text_markdown_processor.TextMarkdownProcessor
+  - prefix: ".md"
+    class_path: knowledge_flow_app.input_processors.markdown_markdown_processor.markdown_markdown_processor.MarkdownMarkdownProcessor
   - prefix: ".xlsm"
     class_path: knowledge_flow_app.input_processors.pps_tabular_processor.pps_tabular_processor.PpsTabularProcessor
 
@@ -83,7 +85,7 @@ metadata_storage:
   type: "local"
 
 vector_storage:
-  # The vector store type can be either "local" or "opensearch"
+  # The vector store type can be either "in_memory" or "opensearch"
   # If you are using opensearch, make sure to set the following environment variables:
   # - OPENSEARCH_HOST="https://localhost:9200"
   # - OPENSEARCH_USER="admin"
@@ -107,6 +109,7 @@ embedding:
   #   - "openai"      → Use OpenAI's public API
   #   - "azureopenai" → Use Azure OpenAI service directly
   #   - "azureapim"   → Use Azure OpenAI via Azure APIM Gateway (OAuth2 + subscription key)
+  #   - "ollama"      → Use Ollama's API
   #
   # Required environment variables based on the selected backend:
   #

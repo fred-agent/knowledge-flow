@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from opensearchpy import OpenSearch, RequestsHttpConnection
+from opensearchpy import OpenSearch, RequestsHttpConnection, OpenSearchException
 
 from knowledge_flow_app.stores.metadata.base_metadata_store import BaseMetadataStore
 
@@ -66,9 +66,9 @@ class OpenSearchMetadataStore(BaseMetadataStore):
             )
             logger.info(f"Metadata written to index '{self.metadata_index_name}' for UID '{document_uid}'.")
             return response
-        except Exception as e:
-            logger.error(f"Error while writing metadata for UID '{document_uid}': {e}")
-            return None
+        except OpenSearchException as e:
+            logger.error(f"❌ Failed to write metadata with UID {document_uid}: {e}")
+            raise ValueError(f"Failed to write metadata to Opensearch: {e}")
 
  
     def update_metadata_field(self, document_uid: str, field: str, value: any):
@@ -198,5 +198,14 @@ class OpenSearchMetadataStore(BaseMetadataStore):
             logger.error(f"Error while deleting metadata for UID '{metadata.get('document_uid', 'N/A')}': {e}")
             raise e
 
-    def save_metadata(self, metadata):
-        return super().save_metadata(metadata)
+    def save_metadata(self, metadata: dict):
+        """Save metadata in Opensearch
+
+        Args:
+            metadata (dict): A dictionary containing metadatas
+        """
+        try:
+            self.write_metadata(document_uid=metadata.get("document_uid"), metadata=metadata)
+        except Exception as e:
+            logger.error(f"❌ Failed to write metadata with UID {metadata.get("document_uid")}: {e}")
+            raise ValueError(e)

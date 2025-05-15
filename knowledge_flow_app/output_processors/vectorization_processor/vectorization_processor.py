@@ -101,9 +101,6 @@ class VectorizationProcessor(BaseOutputProcessor):
                 logger.exception("Failed to add documents to OpenSearch: %s", e)
                 raise HTTPException(status_code=500, detail="Failed to add documents to OpenSearch") from e
 
-            # 6. Save metadata
-            self.metadata_store.save_metadata( metadata)
-            logger.debug("Metadata saved.")
             return VectorizationResponse(
                 status=Status.SUCCESS,
                 chunks=len(chunks)

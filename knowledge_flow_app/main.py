@@ -19,7 +19,12 @@ from knowledge_flow_app.common.utils import parse_server_configuration
 from knowledge_flow_app.common.structures import Configuration
 from knowledge_flow_app.controllers.ingestion_controller import IngestionController
 from knowledge_flow_app.controllers.metadata_controller import MetadataController
+from knowledge_flow_app.controllers.content_controller import ContentController
 from knowledge_flow_app.controllers.vector_search_controller import VectorSearchController
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 app: FastAPI = None  # Global app instance for optional reuse
@@ -64,6 +69,7 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
     IngestionController(router)
     VectorSearchController(router)
     MetadataController(router)
+    ContentController(router)
     app.include_router(router, prefix=base_url)
 
     return app

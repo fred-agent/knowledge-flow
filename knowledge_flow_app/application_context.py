@@ -8,7 +8,7 @@ from knowledge_flow_app.config.embedding_ollama_settings import EmbeddingOllamaS
 from knowledge_flow_app.config.embedding_openai_settings import EmbeddingOpenAISettings
 from knowledge_flow_app.config.opensearch_settings import OpenSearchSettings
 from knowledge_flow_app.output_processors.base_output_processor import BaseOutputProcessor
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, AzureOpenAIEmbeddings
 from langchain_community.embeddings import OllamaEmbeddings
 from knowledge_flow_app.input_processors.base_input_processor import (
     BaseInputProcessor,
@@ -38,6 +38,7 @@ EXTENSION_CATEGORY = {
     ".docx": "markdown",
     ".pptx": "markdown",
     ".txt": "markdown",
+    ".md": "markdown",
     ".csv": "tabular",
     ".xlsx": "tabular",
     ".xls": "tabular",
@@ -250,10 +251,10 @@ class ApplicationContext:
         
         elif backend_type == "azureopenai":
             openai_settings = EmbeddingAzureOpenAISettings()
-            return Embedder(OpenAIEmbeddings(
+            return Embedder(AzureOpenAIEmbeddings(
                     deployment=openai_settings.azure_deployment_embedding,
                     openai_api_type="azure",
-                    openai_api_base=openai_settings.azure_openai_base_url,
+                    azure_endpoint=openai_settings.azure_openai_base_url,
                     openai_api_version=openai_settings.azure_api_version,
                     openai_api_key=openai_settings.azure_openai_api_key,
             ))

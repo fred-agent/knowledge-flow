@@ -60,6 +60,8 @@ class LocalMetadataStore(BaseMetadataStore):
 
         :return: List of metadata dictionaries.
         """
+        if not self.path.exists():
+            return []
         return json.loads(self.path.read_text())
 
     def _save(self, data: List[Dict[str, Any]]) -> None:

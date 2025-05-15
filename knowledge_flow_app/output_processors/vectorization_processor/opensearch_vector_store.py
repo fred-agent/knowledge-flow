@@ -58,7 +58,7 @@ class OpenSearchVectorStoreAdapter(BaseVectoreStore):
             doc.metadata["score"] = score
             doc.metadata["rank"] = rank
             doc.metadata["retrieved_at"] = datetime.now(timezone.utc).isoformat()
-            doc.metadata["embedding_model"] = get_embedding_model_name(self.embedding_model)
+            doc.metadata["embedding_model"] = get_embedding_model_name(self.opensearch_vector_search.embedding_function)
             doc.metadata["vector_index"] = self.settings.opensearch_vector_index
             doc.metadata["token_count"] = len(doc.page_content.split())  # simple estimation
             enriched.append((doc, score))

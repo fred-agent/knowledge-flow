@@ -40,10 +40,10 @@ class OutputProcessorService:
         if not output_dir.is_dir():
             raise ValueError(f"Output directory {output_dir} is not a directory")
         # check if the output_dir contains "output.md" or "output.csv" files
-        if not any(output_dir.glob("output.*")):
+        if not any(output_dir.glob("*.*")):
             raise ValueError(f"Output directory {output_dir} does not contain output files")
         # get the first file in the output_dir
-        output_file = next(output_dir.glob("output.*"))
+        output_file = next(output_dir.glob("*.*"))
         # check if the file is a markdown or csv file
         if output_file.suffix.lower() not in [".md", ".csv"]:
             raise ValueError(f"Output file {output_file} is not a markdown or csv file")

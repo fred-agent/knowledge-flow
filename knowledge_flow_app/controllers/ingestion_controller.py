@@ -99,6 +99,13 @@ class IngestionController:
                                                 document_uid=metadata["document_uid"],
                                                 filename=filename).model_dump_json() + "\n"
 
+                        # check if metadata is already known if so delete it to replace it and process the
+                        # document again
+                        if self.metadata_store.get_metadata_by_uid(metadata["document_uid"]):
+                            logger.info(f"Metadata already exists for {filename}: {metadata}")
+                            self.metadata_store.delete_metadata(metadata)
+                            self.content_store.delete_content(metadata["document_uid"])
+
                         # Step 3: Processing
                         current_step = "document knowledge extraction"
                         self.input_processor_service.process(output_temp_dir, input_temp_file, metadata)
@@ -142,7 +149,7 @@ class IngestionController:
                                                 status=Status.ERROR,
                                                 error=error_message,
                                                 filename=file.filename).model_dump_json() + "\n"
-                yield json.dumps({"step": "done", "status": "success" if all_success_flag[0] else "error"}) + "\n"
+                yield json.dumps({"step": "done", "status": Status.SUCCESS if all_success_flag[0] else "error"}) + "\n"
 
             return StatusAwareStreamingResponse(event_generator(), all_success_flag=all_success_flag)
 

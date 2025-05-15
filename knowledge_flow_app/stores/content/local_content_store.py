@@ -33,3 +33,16 @@ class LocalStorageBackend(BaseContentStore):
 
         logger.info(f"✅ Successfully saved document {document_uid} to {destination}")
 
+    def delete_content(self, document_uid: str) -> None:
+        """
+        Deletes the content directory for the given document UID.
+        """
+        destination = self.destination_root / document_uid
+
+        if destination.exists() and destination.is_dir():
+            shutil.rmtree(destination)
+            logger.info(f"🗑️ Deleted content for document {document_uid} at {destination}")
+        else:
+            logger.warning(f"⚠️ Tried to delete content for document {document_uid}, but it does not exist at {destination}")
+
+

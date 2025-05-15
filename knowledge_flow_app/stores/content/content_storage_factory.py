@@ -5,7 +5,6 @@ from knowledge_flow_app.config.content_store_minio_settings import ContentStoreM
 from pathlib import Path
 
 from knowledge_flow_app.stores.content.base_content_store import BaseContentStore
-from knowledge_flow_app.stores.content.gcs_content_store import GCSUploader
 from knowledge_flow_app.stores.content.local_content_store import LocalStorageBackend
 from knowledge_flow_app.stores.content.minio_content_store import MinioContentStore
 
@@ -30,9 +29,6 @@ def get_content_store() -> BaseContentStore:
             bucket_name=settings.minio_bucket_name,
             secure=settings.minio_secure
         )
-    elif backend_type == "gcs":
-        # Assuming GCSUploader is defined similarly to MinioUploader
-        return GCSUploader()
     elif backend_type == "local":
         settings = ContentStoreLocalSettings()
         return LocalStorageBackend(Path(settings.root_path).expanduser())

@@ -3,10 +3,15 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 
+from knowledge_flow_app.common.structures import Status
 from knowledge_flow_app.services.metadata_service import MetadataService
+from knowledge_flow_app.stores.content.content_storage_factory import get_content_store
 
 logger = logging.getLogger(__name__)
 # --- Flexible Response Models ---
+from threading import Lock
+
+lock = Lock()
 
 class GetDocumentsMetadataResponse(BaseModel):
     """
@@ -65,6 +70,7 @@ class MetadataController:
 
     def __init__(self, router: APIRouter):
         self.service = MetadataService()
+        self.content_store = get_content_store()
 
         @router.post(
             "/documents/metadata",
@@ -82,7 +88,7 @@ class MetadataController:
             ),
             response_model=GetDocumentsMetadataResponse
         )
-        async def get_documents_metadata(filters: Dict[str, Any] = Body(default={})):
+        def get_documents_metadata(filters: Dict[str, Any] = Body(default={})):
             """
             POST endpoint to retrieve metadata for all documents, with optional filters.
 
@@ -94,7 +100,7 @@ class MetadataController:
             - **documents**: List of matching documents
             """
             try:
-                result = await self.service.get_documents_metadata(filters)
+                result = self.service.get_documents_metadata(filters)
                 return result
             except Exception as e:
                 raise HTTPException(
@@ -112,7 +118,7 @@ class MetadataController:
             ),
             response_model=GetDocumentMetadataResponse
         )
-        async def get_document_metadata(document_uid: str):
+        def get_document_metadata(document_uid: str):
             """
             Endpoint to retrieve metadata for a single document.
 
@@ -123,7 +129,7 @@ class MetadataController:
             - **status**: "success" or "error"
             - **metadata**: A dictionary containing the document's metadata
             """
-            return await self.service.get_document_metadata(document_uid)
+            return self.service.get_document_metadata(document_uid)
 
         @router.put(
             "/document/{document_uid}",
@@ -135,7 +141,7 @@ class MetadataController:
             ),
             response_model=UpdateDocumentRetrievableResponse
         )
-        async def update_document_retrievable(document_uid: str, update: UpdateRetrievableRequest):
+        def update_document_retrievable(document_uid: str, update: UpdateRetrievableRequest):
             """
             Endpoint to update the 'retrievable' field of a document.
 
@@ -149,7 +155,7 @@ class MetadataController:
             - **status**: "success" or "error"
             - **response**: Raw response from the metadata store or service
             """
-            return await self.service.update_document_retrievable(document_uid, update)
+            return self.service.update_document_retrievable(document_uid, update)
 
         @router.delete(
             "/document/{document_uid}",
@@ -160,23 +166,30 @@ class MetadataController:
                 "This operation is permanent and cannot be undone."
             ),
             response_model=DeleteDocumentMetadataResponse
-    )
-        async def delete_document_metadata(document_uid: str):
+        )
+        def delete_document_metadata(document_uid: str):
             """
-            Endpoint to delete a metadata record by document UID.
+            Endpoint to delete metadata for a specific document.
 
             Path Parameters:
             - **document_uid**: The unique identifier for the document
-
-        Returns:
-    - **status**: "success" if the document was deleted
-    - **message**: A human-readable confirmation
+            Returns:
+            - **status**: "success" or "error"
+            - **message**: Confirmation message     
             """
             try:
-                await self.service.delete_document_metadata(document_uid)
-                return DeleteDocumentMetadataResponse(
-                    status=Status.SUCCESS,
-                    message=f"Metadata for document {document_uid} has been deleted."
-                )
+                # Acquire the lock to ensure thread safety
+                with lock:
+                    # Check if the document exists in the metadata store
+
+                    # Delete the document metadata and content
+                    self.service.delete_document_metadata(document_uid)
+                    self.content_store.delete_content(document_uid)
+                    return DeleteDocumentMetadataResponse(
+                        status=Status.SUCCESS,
+                        message=f"Metadata for document {document_uid} has been deleted."
+                    )
             except Exception as e:
+                logger.error(f"Failed to delete document metadata: {e}")
+                logger.exception(e)
                 raise HTTPException(status_code=500, detail=f"Failed to delete document metadata: {str(e)}")
