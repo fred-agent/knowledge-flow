@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pypdf
 from pypdf.errors import PdfReadError
-import pypandoc
+from docling.document_converter import DocumentConverter
 
 from knowledge_flow_app.input_processors.base_input_processor import BaseMarkdownProcessor
 
@@ -51,13 +51,11 @@ class PdfMarkdownProcessor(BaseMarkdownProcessor):
         shutil.copy(file_path, output_dir / "file.pdf")
         md_path = output_dir / "output.md"
 
+        converter = DocumentConverter()
+        
         try:
-            with open(file_path, 'rb') as f:
-                reader = pypdf.PdfReader(f)
-                raw_text = "\n\n".join([page.extract_text() or "" for page in reader.pages])
-            md_path.write_text(raw_text.strip())
-            conversion_status = "fallback_to_text"
-            message = "Conversion to plain text fallback succeeded."
+            result = converter.convert(file_path)
+            md_path.write_text(result.document.export_to_markdown())
         except Exception as fallback_error:
             logger.error(f"Fallback text extraction also failed: {fallback_error}")
             return {
@@ -70,6 +68,6 @@ class PdfMarkdownProcessor(BaseMarkdownProcessor):
         return {
             "doc_dir": str(output_dir),
             "md_file": str(md_path),
-            "status": conversion_status,
-            "message": message,
+            "status": "fallback_to_text",
+            "message": "Conversion to plain text fallback succeeded.",
         }
