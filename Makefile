@@ -71,7 +71,7 @@ $(TARGET)/.venv-dependencies: $(TARGET)/.venv-created pyproject.toml
 	$(info ************ INSTALLING POETRY & DEPENDENCIES ************)
 	$(PIP) install -U pip setuptools'<50' wheel
 	$(PIP) install poetry==2.1.2
-	$(POETRY) install
+	$(POETRY) install --with dev
 	touch $@
 
 ##@ Development
