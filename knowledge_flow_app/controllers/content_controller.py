@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, List
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -22,12 +23,8 @@ class DocumentContent(BaseModel):
     metadata: Dict[str, Any] = {}
 
 
-class GetDocumentContentResponse(BaseModel):
-    """
-    Response model for retrieving content for a single document.
-    """
-    status: str
-    documents: List[Dict[str, Any]]
+class MarkdownContentResponse(BaseModel):
+    content: str
 
 
 class ContentController:
@@ -48,47 +45,50 @@ class ContentController:
         Register all content-related routes with the provided router.
         """
         @router.get(
-            "/document/{document_uid}",
+            "/markdown/{document_uid}",
             tags=["Content"],
-            summary="Get content for a specific document",
-            description="Fetch content for a single document using its unique UID.",
-            response_model=GetDocumentContentResponse
-        )
-        async def get_document_content(document_uid: str):
-            """
-            Endpoint to retrieve content for a single document.
-            """
-            try:
-                logger.info(f"Retrieving document: {document_uid}")
-                result = await self.service.get_document_content(document_uid)
-                return result
-            except HTTPException as e:
-                raise e
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
-            except Exception as e:
-                logger.error(f"Error retrieving document {document_uid}: {str(e)}")
-                raise HTTPException(status_code=500, detail="An unexpected error occurred")
-                
-        @router.get(
-            "/fullDocument/{document_uid}",
-            tags=["Content"],
-            summary="Get complete document with content",
+            summary="Get a preview of the complete document in markdown format",
             description="Fetch complete document including content using its unique UID.",
-            response_model=GetDocumentContentResponse
+            response_model=MarkdownContentResponse
         )
-        async def get_full_document(document_uid: str):
+        async def get_markdown_preview(document_uid: str):
             """
             Endpoint to retrieve a complete document including its content.
             """
             try:
                 logger.info(f"Retrieving full document: {document_uid}")
-                result = await self.service.get_document_content(document_uid)
-                return result
-            except HTTPException as e:
-                raise e
+                content = await self.service.get_markdown_preview(document_uid)
+                return {"content": content} 
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
+            except FileNotFoundError as e:
+                raise HTTPException(status_code=404, detail=str(e))
             except Exception as e:
-                logger.error(f"Error retrieving full document {document_uid}: {str(e)}")
-                raise HTTPException(status_code=500, detail="An unexpected error occurred")
+                logger.exception("Unexpected error in get_document_preview")
+                raise HTTPException(status_code=500, detail="Internal server error")
+            
+
+        @router.get(
+            "/raw_content/{document_uid}",
+            tags=["Content"],
+            summary="Download the original document content",
+            description="Serves the raw file associated with the given UID as a downloadable stream."
+        )
+        async def download_document(document_uid: str):
+            try:
+                stream, file_name, content_type = await self.service.get_original_content(document_uid)
+
+                return StreamingResponse(
+                    content=stream,
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{file_name}"'
+                    }
+                )
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            except FileNotFoundError as e:
+                raise HTTPException(status_code=404, detail=str(e))
+            except Exception as e:
+                logger.exception("Unexpected error in download_document")
+                raise HTTPException(status_code=500, detail="Internal server error")

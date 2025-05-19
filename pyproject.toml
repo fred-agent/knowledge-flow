@@ -48,7 +48,12 @@ shortuuid = "^1.0.13"
 openpyxl = "^3.1.5"
 docling = "^2.31.2"
 hf-xet = "^1.1.1"
-torch = "2.2.2"
+torch = [
+  {platform = "darwin", version = "==2.2.2"},
+  {platform = "linux", version = "==2.7.0"}
+]
+
+   
 
 [tool.poetry.scripts]
 chatbot = "knowledge_flow_app.main:main"

@@ -1,5 +1,7 @@
+from io import BytesIO
 import logging
 from pathlib import Path
+from typing import BinaryIO
 from minio import Minio
 from minio.error import S3Error
 from knowledge_flow_app.stores.content.base_content_store import BaseContentStore
@@ -63,3 +65,32 @@ class MinioContentStore(BaseContentStore):
             logger.error(f"❌ Failed to delete objects for document {document_uid}: {e}")
             raise ValueError(f"Failed to delete document content from MinIO: {e}")
 
+
+    def get_content(self, document_uid: str) -> BinaryIO:
+        """
+        Returns a binary stream of the first file found in the input/ folder for the document.
+        """
+        prefix = f"{document_uid}/input/"
+        try:
+            objects = list(self.client.list_objects(self.bucket_name, prefix=prefix, recursive=True))
+            if not objects:
+                raise FileNotFoundError(f"No input content found for document: {document_uid}")
+
+            obj = objects[0]
+            response = self.client.get_object(self.bucket_name, obj.object_name)
+            return BytesIO(response.read())
+        except S3Error as e:
+            logger.error(f"Error fetching content for {document_uid}: {e}")
+            raise FileNotFoundError(f"Failed to retrieve original content: {e}")
+
+    def get_markdown(self, document_uid: str) -> str:
+        """
+        Fetches the markdown content from 'output/output.md' in the document directory.
+        """
+        object_name = f"{document_uid}/output/output.md"
+        try:
+            response = self.client.get_object(self.bucket_name, object_name)
+            return response.read().decode("utf-8")
+        except S3Error as e:
+            logger.error(f"Error fetching markdown for {document_uid}: {e}")
+            raise FileNotFoundError(f"Markdown not found for document: {document_uid}")

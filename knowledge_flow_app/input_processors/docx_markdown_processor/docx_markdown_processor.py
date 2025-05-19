@@ -10,7 +10,7 @@ from knowledge_flow_app.input_processors.base_input_processor import BaseMarkdow
 
 logger = logging.getLogger(__name__)
 
-def default_or_unknown(value: str, default="Inconnue") -> str:
+def default_or_unknown(value: str, default="None") -> str:
     return value.strip() if value and value.strip() else default
 
 

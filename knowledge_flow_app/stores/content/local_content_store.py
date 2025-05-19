@@ -1,6 +1,7 @@
 import logging
 import shutil
 from pathlib import Path
+from typing import BinaryIO
 
 from knowledge_flow_app.stores.content.base_content_store import BaseContentStore
 logger = logging.getLogger(__name__)
@@ -45,4 +46,32 @@ class LocalStorageBackend(BaseContentStore):
         else:
             logger.warning(f"⚠️ Tried to delete content for document {document_uid}, but it does not exist at {destination}")
 
+
+    def get_content(self, document_uid: str) -> BinaryIO:
+        """
+        Returns a file stream (BinaryIO) for the first file in the `input` subfolder.
+        """
+        input_dir = self.destination_root / document_uid / "input"
+        if not input_dir.exists():
+            raise FileNotFoundError(f"No input folder for document: {document_uid}")
+
+        files = list(input_dir.glob("*"))
+        if not files:
+            raise FileNotFoundError(f"No file found in input folder for document: {document_uid}")
+
+        return open(files[0], "rb")
+
+    def get_markdown(self, document_uid: str) -> str:
+        """
+        Returns the content of the `output/output.md` file as a UTF-8 string.
+        """
+        md_path = self.destination_root / document_uid / "output" / "output.md"
+        if not md_path.exists():
+            raise FileNotFoundError(f"Markdown not found for document: {document_uid}")
+
+        try:
+            return md_path.read_text(encoding="utf-8")
+        except Exception as e:
+            logger.error(f"Error reading markdown file for {document_uid}: {e}")
+            raise
 
