@@ -53,6 +53,7 @@ torch = [
   {platform = "linux", version = "==2.7.0"}
 ]
 langchain-ollama = "^0.3.3"
+fastapi-mcp = "^0.3.4"
 
    
 
