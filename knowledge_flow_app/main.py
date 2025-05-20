@@ -8,21 +8,23 @@ Entrypoint for the knowledge_flow_app microservice.
 import argparse
 import logging
 import os
+
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from rich.logging import RichHandler
 
-from fastapi import FastAPI, APIRouter
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-
 from knowledge_flow_app.application_context import ApplicationContext
-from knowledge_flow_app.common.utils import parse_server_configuration
 from knowledge_flow_app.common.structures import Configuration
-from knowledge_flow_app.controllers.ingestion_controller import IngestionController
-from knowledge_flow_app.controllers.metadata_controller import MetadataController
+from knowledge_flow_app.common.utils import parse_server_configuration
 from knowledge_flow_app.controllers.content_controller import ContentController
-from knowledge_flow_app.controllers.vector_search_controller import VectorSearchController
-
-from dotenv import load_dotenv
+from knowledge_flow_app.controllers.ingestion_controller import \
+    IngestionController
+from knowledge_flow_app.controllers.metadata_controller import \
+    MetadataController
+from knowledge_flow_app.controllers.vector_search_controller import \
+    VectorSearchController
 
 load_dotenv()
 
