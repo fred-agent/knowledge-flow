@@ -13,6 +13,7 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
 from rich.logging import RichHandler
 
 from knowledge_flow_app.application_context import ApplicationContext
@@ -93,6 +94,19 @@ def main():
     args = parser.parse_args()
 
     app = create_app(args.server_configuration_path, args.server_base_url_path)
+
+    # Add the MCP server to Knowledge Flow FastAPI app
+    mcp = FastApiMCP(
+        app,  
+        name="Knowledge Flow MCP",  # Name for the MCP server
+        description="MCP server for Knowledge Flow",  # Description
+        include_tags=["Vector Search"],
+        describe_all_responses=True,  # Include all possible response schemas
+        describe_full_response_schema=True  # Include full JSON schema in descriptions
+    )
+
+    # Mount the MCP server to Knowledge Flow FastAPI app
+    mcp.mount()
 
     uvicorn.run(
         app,
