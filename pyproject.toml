@@ -52,6 +52,7 @@ torch = [
   {platform = "darwin", version = "==2.2.2"},
   {platform = "linux", version = "==2.7.0"}
 ]
+langchain-ollama = "^0.3.3"
 
    
 

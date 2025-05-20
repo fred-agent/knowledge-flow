@@ -20,7 +20,7 @@ PROJECT_ID="74648"
 
 MY_SOURCES=$(shell find $(CURDIR)/$(PY_PACKAGE) -name "*.py" | tr "\n" " ")
 
-LOG_LEVEL?=DEBUG
+LOG_LEVEL?=INFO
 
 ##@ Build
 
@@ -71,7 +71,7 @@ $(TARGET)/.venv-dependencies: $(TARGET)/.venv-created pyproject.toml
 	$(info ************ INSTALLING POETRY & DEPENDENCIES ************)
 	$(PIP) install -U pip setuptools'<50' wheel
 	$(PIP) install poetry==2.1.2
-	$(POETRY) install --with dev
+	$(POETRY) install
 	touch $@
 
 ##@ Development
@@ -116,7 +116,7 @@ clean-test: ## Clean test cache
 .PHONY: run
 
 run: $(TARGET)/.venv-dependencies ## Run the app from source
-	ENV_FILE="$(ENV_FILE)" $(PYTHON) ${PY_PACKAGE}/main.py --config-path ./config/configuration.yaml
+	ENV_FILE="$(ENV_FILE)" LOG_LEVEL="$(LOG_LEVEL)" $(PYTHON) ${PY_PACKAGE}/main.py --config-path ./config/configuration.yaml
 
 .PHONY: docker-run
 
@@ -126,6 +126,7 @@ docker-run: ## Run the app in Docker
         -v ~/.kube/:/home/fred-user/.kube/ \
         -v ~/.aws/:/home/fred-user/.aws/ \
         -v $(realpath knowledge_flow_app/config/configuration.yaml):/app/configuration.yaml \
+        -e LOG_LEVEL="$(LOG_LEVEL)" \
         $(IMG) --config-path /app/configuration.yaml
 
 ##@ Tests

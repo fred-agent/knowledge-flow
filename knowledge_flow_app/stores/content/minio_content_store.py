@@ -32,7 +32,7 @@ class MinioContentStore(BaseContentStore):
         """
         for file_path in document_dir.rglob("*"):
             if file_path.is_file():
-                object_name = f"{document_uid}/{file_path.name}"
+                object_name = f"{document_uid}/{file_path.relative_to(document_dir)}"
                 try:
                     self.client.fput_object(
                         self.bucket_name,

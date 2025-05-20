@@ -9,7 +9,7 @@ from knowledge_flow_app.config.embedding_openai_settings import EmbeddingOpenAIS
 from knowledge_flow_app.config.opensearch_settings import OpenSearchSettings
 from knowledge_flow_app.output_processors.base_output_processor import BaseOutputProcessor
 from langchain_openai import OpenAIEmbeddings, AzureOpenAIEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from knowledge_flow_app.input_processors.base_input_processor import (
     BaseInputProcessor,
     BaseMarkdownProcessor,
@@ -354,6 +354,13 @@ class ApplicationContext:
                 logger.info(f"     ↳ Deployment: {s.azure_deployment_embedding}")
             except Exception:
                 logger.warning("⚠️ Failed to load Azure APIM settings — some variables may be missing.")
+        elif backend == "ollama":
+            try:
+                s = EmbeddingOllamaSettings()
+                logger.info(f"     ↳ Model: {s.embedding_model_name}")
+                logger.info(f"     ↳ API URL: {s.api_url if s.api_url else 'default'}")
+            except Exception:
+                logger.warning("⚠️ Failed to load Ollama settings — some variables may be missing.")
         else:
             logger.warning("⚠️ Unknown embedding backend configured.")
 
@@ -396,5 +403,5 @@ class ApplicationContext:
         logger.info("--------------------------------------------------")
 
 
-    
+
 

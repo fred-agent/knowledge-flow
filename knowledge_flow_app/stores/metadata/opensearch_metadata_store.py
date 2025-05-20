@@ -191,7 +191,14 @@ class OpenSearchMetadataStore(BaseMetadataStore):
             logger.info(f"Metadata with UID '{document_uid}' deleted from index '{self.metadata_index_name}'.")
 
             # Delete from the vector index
-            self.client.delete(index=self.vector_index_name, id=document_uid)
+            query_delete_document_vector_index = {
+                "query": {
+                    "match": {
+                        "metadata.document_uid": document_uid
+                    }
+                }
+            }
+            self.client.delete_by_query(index=self.vector_index_name, body=query_delete_document_vector_index)
             logger.info(f"Metadata with UID '{document_uid}' deleted from index '{self.vector_index_name}'.")
 
         except Exception as e:
