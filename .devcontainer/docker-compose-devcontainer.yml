@@ -1,0 +1,29 @@
+services:
+
+# -----------------------------------------------------------------------------
+# FRED dev container
+# -----------------------------------------------------------------------------
+
+  devcontainer:
+    image: knowledge-flow/devcontainer:0.1
+    container_name: knowledge-flow-devcontainer
+    hostname: knowledge-flow-devcontainer
+    build:
+      context: ../..
+      dockerfile: .devcontainer/Dockerfile-devcontainer
+    tty: true
+    command:
+      - /bin/bash
+    volumes:
+      - ../..:/app
+      - /app/.venv
+      - /app/target
+    networks:
+      - knowledge-flow-network
+    ports:
+      - "0.0.0.0:8111:8111/tcp"
+    depends_on:
+      opensearch-dashboards:
+        condition: service_healthy
+      minio-post-install-job:
+        condition: service_completed_successfully
