@@ -337,12 +337,21 @@ Here is a typical launch.json file you need in knowledge-flow/.vscode folder:
 
 ---
 
+## Other Information
+
+- Entry point: [`main.py`](./knowledge_flow_app/main.py)
+- Custom configuration path: `--server.configurationPath`
+- Logs: set `--server.logLevel=debug` to see full logs
+- Compatible with Azure OpenAI, OpenAI API, and (future) other LLM backends.
+
+---
+
 ## Docker compose
 
 The docker compose file is provided to start and configure the other required componants: Keycloak, MinIO and OpenSearch. 
 
 1. Add the entry `127.0.0.1 knowledge-flow-keycloak` into your file `/etc/hosts` 
-2. Go to deploy/docker-compose and run the command
+2. Go to `deploy/docker-compose` folder and run the command
 ```
 docker compose up -d
 ```
@@ -375,14 +384,5 @@ Hereunder these are the nominative SSO accounts registered into the Keycloak rea
 - alice (role: admin): Azerty123_
 - bob (roles: editor, viewer): Azerty123_
 - phil (role: viewer): Azerty123_
-
----
-
-## Other Information
-
-- Entry point: [`main.py`](./knowledge_flow_app/main.py)
-- Custom configuration path: `--server.configurationPath`
-- Logs: set `--server.logLevel=debug` to see full logs
-- Compatible with Azure OpenAI, OpenAI API, and (future) other LLM backends.
 
 ---
