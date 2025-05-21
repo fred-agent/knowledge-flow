@@ -32,10 +32,10 @@ This project is maintained by a core team at **Thales**, in collaboration with e
 This project uses two synchronized repositories:
 
 - **Internal GitLab** (for Thales developers):  
-  [gitlab.thalesdigital.io/tsn/innovation/projects/fred-oss](https://gitlab.thalesdigital.io/tsn/innovation/projects/fred-oss)
+  [gitlab.thalesdigital.io/tsn/innovation/projects/knowledge-flow-oss](https://gitlab.thalesdigital.io/tsn/innovation/projects/knowledge-flow-oss)
 
 - **Public GitHub** (for open source contributions):  
-  [github.com/ThalesGroup/fred](https://github.com/ThalesGroup/fred)
+  [github.com/ThalesGroup/knowledge-flow](https://github.com/ThalesGroup/knowledge-flow)
 
 ### Synchronization Policy
 
@@ -47,7 +47,7 @@ This project uses two synchronized repositories:
 
 ## 🚀 How to Become a Contributor
 
-1. Fork the [GitHub repository](https://github.com/ThalesGroup/fred)
+1. Fork the [GitHub repository](https://github.com/ThalesGroup/knowledge-flow)
 2. Clone your fork and create a branch:  
    ```bash
    git checkout -b your-feature-name
