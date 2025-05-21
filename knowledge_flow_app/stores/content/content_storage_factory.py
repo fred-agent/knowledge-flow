@@ -1,5 +1,5 @@
 from knowledge_flow_app.application_context import ApplicationContext
-from knowledge_flow_app.config.content_store_gcs_settings import ContentStoreGcsSettings
+from knowledge_flow_app.common.utils import validate_settings_or_exit
 from knowledge_flow_app.config.content_store_local_settings import ContentStoreLocalSettings
 from knowledge_flow_app.config.content_store_minio_settings import ContentStoreMinioSettings
 from pathlib import Path
@@ -21,7 +21,7 @@ def get_content_store() -> BaseContentStore:
     backend_type = config.content_storage.type
 
     if backend_type == "minio":
-        settings = ContentStoreMinioSettings()
+        settings = validate_settings_or_exit(ContentStoreMinioSettings, "MinIO Settings")
         return MinioContentStore(
             endpoint=settings.minio_endpoint,
             access_key=settings.minio_access_key,

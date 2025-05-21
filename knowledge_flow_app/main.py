@@ -27,11 +27,9 @@ from knowledge_flow_app.controllers.metadata_controller import \
 from knowledge_flow_app.controllers.vector_search_controller import \
     VectorSearchController
 
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 app: FastAPI = None  # Global app instance for optional reuse
-
 
 def configure_logging():
     """Configure logging dynamically based on LOG_LEVEL environment variable."""
@@ -80,6 +78,13 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
 
 def main():
     configure_logging()
+    dotenv_path = os.getenv("ENV_FILE", "./config/.env")
+    dotenv_loaded = load_dotenv(dotenv_path)
+    if dotenv_loaded:
+        logging.getLogger().info(f"✅ Loaded environment variables from: {dotenv_path}")
+    else:
+        logging.getLogger().warning(f"⚠️  No .env file found at: {dotenv_path}")
+
     """
     Parses CLI arguments and starts the Uvicorn server.
     """

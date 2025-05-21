@@ -1,7 +1,11 @@
+import logging
+from pydantic import ValidationError
+from pydantic_settings import BaseSettings
 import yaml
 from typing import Dict
 
 from knowledge_flow_app.common.structures import Configuration
+logger = logging.getLogger(__name__)
 
 def parse_server_configuration(configuration_path: str) -> Configuration:
     """
@@ -30,3 +34,16 @@ def get_embedding_model_name(embedding_model: object) -> str:
         inner = getattr(embedding_model, "model")
         return getattr(inner, "model", type(inner).__name__)
     return getattr(embedding_model, "model", type(embedding_model).__name__)
+
+
+def validate_settings_or_exit(cls: type[BaseSettings], name: str = "Settings") -> BaseSettings:
+    try:
+        return cls()
+    except ValidationError as e:
+        logger.critical(f"❌ Invalid {name}:")
+        for error in e.errors():
+            field = error.get("loc", ["?"])[0]
+            msg = error.get("msg", "")
+            logger.critical(f"   - Missing or invalid: {field} → {msg}")
+        logger.critical("📌 Tip: Check your .env file or environment variables.")
+        raise SystemExit(1)

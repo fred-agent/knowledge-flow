@@ -2,6 +2,7 @@ import importlib
 import logging
 from typing import Dict, Type, Union, Optional
 from knowledge_flow_app.common.structures import Configuration
+from knowledge_flow_app.common.utils import validate_settings_or_exit
 from knowledge_flow_app.config.embedding_azure_apim_settings import EmbeddingAzureApimSettings
 from knowledge_flow_app.config.embedding_azure_openai_settings import EmbeddingAzureOpenAISettings
 from knowledge_flow_app.config.embedding_ollama_settings import EmbeddingOllamaSettings
@@ -260,7 +261,7 @@ class ApplicationContext:
             ))
         
         elif backend_type == "azureapim":
-            settings = EmbeddingAzureApimSettings.validate_or_exit()
+            settings = validate_settings_or_exit(EmbeddingAzureApimSettings, "Azure APIM Embedding Settings")
             return AzureApimEmbedder(settings)
         
         elif backend_type == "ollama":
@@ -302,7 +303,7 @@ class ApplicationContext:
         backend_type = self.config.vector_storage.type
 
         if backend_type == "opensearch":
-            settings = OpenSearchSettings().validate_or_exit()
+            settings = validate_settings_or_exit(OpenSearchSettings, "OpenSearch Settings")
             return OpenSearchVectorStoreAdapter(embedding_model, settings)
         elif backend_type == "in_memory":
             if self._vector_store_instance is None:
@@ -336,17 +337,17 @@ class ApplicationContext:
         logger.info(f"  📦 Embedding backend: {backend}")
 
         if backend == "openai":
-            s = EmbeddingOpenAISettings()
+            s = validate_settings_or_exit(EmbeddingOpenAISettings, "OpenAI Embedding Settings")
             self._log_sensitive("OPENAI_API_KEY", s.openai_api_key)
             logger.info(f"     ↳ Model: {s.openai_model_name}")
         elif backend == "azureopenai":
-            s = EmbeddingAzureOpenAISettings()
+            s = validate_settings_or_exit(EmbeddingAzureOpenAISettings, "Azure OpenAI Embedding Settings")
             self._log_sensitive("AZURE_OPENAI_API_KEY", s.azure_openai_api_key)
             logger.info(f"     ↳ Deployment: {s.azure_deployment_embedding}")
             logger.info(f"     ↳ API Version: {s.azure_api_version}")
         elif backend == "azureapim":
             try:
-                s = EmbeddingAzureApimSettings()
+                s = validate_settings_or_exit(EmbeddingAzureApimSettings, "Azure APIM Embedding Settings")
                 self._log_sensitive("AZURE_CLIENT_ID", s.azure_client_id)
                 self._log_sensitive("AZURE_CLIENT_SECRET", s.azure_client_secret)
                 self._log_sensitive("AZURE_APIM_KEY", s.azure_apim_key)
@@ -355,12 +356,9 @@ class ApplicationContext:
             except Exception:
                 logger.warning("⚠️ Failed to load Azure APIM settings — some variables may be missing.")
         elif backend == "ollama":
-            try:
-                s = EmbeddingOllamaSettings()
-                logger.info(f"     ↳ Model: {s.embedding_model_name}")
-                logger.info(f"     ↳ API URL: {s.api_url if s.api_url else 'default'}")
-            except Exception:
-                logger.warning("⚠️ Failed to load Ollama settings — some variables may be missing.")
+            s = validate_settings_or_exit(EmbeddingOllamaSettings, "Ollama Embedding Settings")
+            logger.info(f"     ↳ Model: {s.embedding_model_name}")
+            logger.info(f"     ↳ API URL: {s.api_url if s.api_url else 'default'}")
         else:
             logger.warning("⚠️ Unknown embedding backend configured.")
 
@@ -368,7 +366,7 @@ class ApplicationContext:
         logger.info(f"  📚 Vector store backend: {vector_type}")
         if vector_type == "opensearch":
             try:
-                s = OpenSearchSettings()
+                s = validate_settings_or_exit(OpenSearchSettings, "OpenSearch Settings")
                 logger.info(f"     ↳ OPENSEARCH_HOST: {s.opensearch_host}")
                 logger.info(f"     ↳ OPENSEARCH_INDEX: {s.opensearch_vector_index}")
                 self._log_sensitive("OPENSEARCH_USER", s.opensearch_user)

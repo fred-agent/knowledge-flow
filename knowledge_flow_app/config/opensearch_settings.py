@@ -26,16 +26,5 @@ class OpenSearchSettings(BaseSettings):
     opensearch_metadata_index: str = Field(..., validation_alias="OPENSEARCH_METADATA_INDEX")
     opensearch_verify_certs: bool = Field(False, validation_alias="OPENSEARCH_VERIFY_CERTS")
     model_config = {
-        "env_file": os.getenv("ENV_FILE", None),
-        "env_file_encoding": "utf-8",
-        "extra": "ignore"
+        "extra": "ignore" # allows unrelated variables in .env or os.environ
     }
-    @classmethod
-    def validate_or_exit(cls):
-        """
-        Validate the OpenSearch settings and exit if invalid.
-        """
-        try:
-            return cls()
-        except Exception as e:
-            logger.critical("❌ Invalid OpenSearch settings:\n%s", e)
