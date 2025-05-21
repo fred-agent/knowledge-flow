@@ -337,6 +337,47 @@ Here is a typical launch.json file you need in knowledge-flow/.vscode folder:
 
 ---
 
+## Docker compose
+
+The docker compose file is provided to start and configure the other required componant: Keycloak, MinIO and OpenSearch. 
+
+1. Add the entry `127.0.0.1 knowledge-flow-keycloak` into your file `/etc/hosts` 
+2. Go to deploy/docker-compose and run the command
+```
+docker compose up -d
+```
+3. Access the componants:
+
+    - Keycloak:
+        - url: http://localhost:8080
+        - admin user: admin
+        - password: Azerty123_
+        - realm: app
+
+    - MinIO:
+        - url: http://localhost:9001
+        - admin user: admin
+        - rw user: app_rw
+        - ro user: app_ro
+        - passwords: Azerty123_
+        - bucket: app-bucket
+
+    - Opensearch:
+        - url: http://localhost:5601
+        - admin user: admin
+        - rw user: app_rw
+        - ro user: app_ro
+        - passwords: Azerty123_
+        - index: app-index
+
+Hereunder these are the nominative SSO accounts registered into the Keycloak realms and their roles:
+
+- alice (role: admin): Azerty123_
+- bob (roles: editor, viewer): Azerty123_
+- phil (role: viewer): Azerty123_
+
+---
+
 ## Other Information
 
 - Entry point: [`main.py`](./knowledge_flow_app/main.py)
