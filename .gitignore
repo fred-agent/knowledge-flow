@@ -190,3 +190,4 @@ pyrightconfig.json
 .nfs*
 
 *.code-workspace
+/media/

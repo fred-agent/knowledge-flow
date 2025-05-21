@@ -10,7 +10,5 @@ class EmbeddingOllamaSettings(BaseSettings):
     api_url: Optional[str] = Field(default=None, validation_alias="OLLAMA_API_URL")
 
     model_config = {
-        "env_file": os.getenv("ENV_FILE", None),
-        "env_file_encoding": "utf-8",
-        "extra": "ignore"
+        "extra": "ignore" # allow extra environment variable 
     }

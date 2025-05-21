@@ -1,6 +1,7 @@
 from knowledge_flow_app.application_context import ApplicationContext
 from knowledge_flow_app.config.metadata_store_local_settings import MetadataStoreLocalSettings
 from knowledge_flow_app.config.opensearch_settings import OpenSearchSettings
+from knowledge_flow_app.common.utils import validate_settings_or_exit
 from pathlib import Path
 
 from knowledge_flow_app.stores.metadata.base_metadata_store import BaseMetadataStore
@@ -21,7 +22,7 @@ def get_metadata_store() -> BaseMetadataStore:
         settings = MetadataStoreLocalSettings()
         return LocalMetadataStore(Path(settings.root_path).expanduser())
     elif config.type == "opensearch":
-        settings = OpenSearchSettings().validate_or_exit()
+        settings = validate_settings_or_exit(OpenSearchSettings, "OpenSearch Settings")
         return OpenSearchMetadataStore(
             host=settings.opensearch_host,
             username=settings.opensearch_user,

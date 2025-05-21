@@ -1,7 +1,8 @@
 import logging
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, ValidationError
 import os
+
+from pydantic_settings import BaseSettings
 logger = logging.getLogger(__name__)
 
 class EmbeddingAzureOpenAISettings(BaseSettings):
@@ -12,15 +13,6 @@ class EmbeddingAzureOpenAISettings(BaseSettings):
     azure_deployment_embedding: str = Field(..., validation_alias="AZURE_DEPLOYMENT_EMBEDDING")
 
     model_config = {
-        "env_file": os.getenv("ENV_FILE", None),
-        "env_file_encoding": "utf-8",
-        "extra": "ignore"
+        "extra": "ignore" # allows unrelated variables in .env or os.environ
     }
-
-    @classmethod
-    def validate_or_exit(cls):
-        try:
-            return cls()
-        except Exception as e:
-            logger.critical("❌ Invalid Azure OpenAI embedding settings:\n%s", e)
 

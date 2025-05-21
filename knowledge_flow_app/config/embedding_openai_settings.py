@@ -12,15 +12,6 @@ class EmbeddingOpenAISettings(BaseSettings):
     openai_api_version: Optional[str] = Field(default=None, validation_alias="OPENAI_API_VERSION")  # Azure needs version, OpenAI doesn't really
 
     model_config = {
-        "env_file": os.getenv("ENV_FILE", None),
-        "env_file_encoding": "utf-8",
-        "extra": "ignore"
+        "extra": "ignore" # allows unrelated variables in .env or os.environ
     }
-
-    @classmethod
-    def validate_or_exit(cls):
-        try:
-            return cls()
-        except Exception as e:
-            logger.critical("❌ Invalid OpenAI embedding settings:\n%s", e)
 
