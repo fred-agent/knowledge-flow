@@ -348,7 +348,7 @@ Here is a typical launch.json file you need in knowledge-flow/.vscode folder:
 
 ## Docker compose
 
-The docker compose file is provided to start and configure the other required componants: Keycloak, MinIO and OpenSearch. 
+This docker-compose.yml sets up the core services required to run Knowledge Flow OSS locally. It provides a consistent and automated way to start the development environment, including authentication (Keycloak), search (OpenSearch), and storage (MinIO) components. All these components are configured and connected. This simplifies onboarding, reduces setup errors, and ensures all developers work with the same infrastructure by running a few command lines.
 
 1. Add the entry `127.0.0.1 knowledge-flow-keycloak` into your file `/etc/hosts` 
 2. Go to `deploy/docker-compose` folder and run the command
