@@ -115,7 +115,7 @@ def parse_cli_opts():
 
 args = parse_cli_opts()
 app = create_app(args.server_configuration_path, args.server_base_url_path)
-MCP server to Knowledge Flow FastAPI app
+# MCP server to Knowledge Flow FastAPI app
 mcp = FastApiMCP(
     app,  
     name="Knowledge Flow MCP",  # Name for the MCP server
