@@ -89,8 +89,7 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
 
     return app
 
-
-def main():
+def parse_cli_opts():
     configure_logging()
     dotenv_path = os.getenv("ENV_FILE", "./config/.env")
     dotenv_loaded = load_dotenv(dotenv_path)
@@ -109,31 +108,32 @@ def main():
     parser.add_argument("--server-address", dest="server_address", default="0.0.0.0", help="Server binding address")
     parser.add_argument("--server-port", dest="server_port", type=int, default=8111, help="Server port")
     parser.add_argument("--log-level", dest="server_log_level", default="info", help="Logging level")
+    parser.add_argument("--server.reload", dest="server_reload", action="store_true", help="Enable auto-reload (for dev only)")
+    parser.add_argument("--server.reloadDir", dest="server_reload_dir", type=str, help="watch for changes in these directories when auto-reload is enabled (for dev only)", default=".")
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    app = create_app(args.server_configuration_path, args.server_base_url_path)
+args = parse_cli_opts()
+app = create_app(args.server_configuration_path, args.server_base_url_path)
+MCP server to Knowledge Flow FastAPI app
+mcp = FastApiMCP(
+    app,  
+    name="Knowledge Flow MCP",  # Name for the MCP server
+    description="MCP server for Knowledge Flow",  # Description
+    include_tags=["Vector Search"],
+    describe_all_responses=True,  # Include all possible response schemas
+    describe_full_response_schema=True  # Include full JSON schema in descriptions
+)
 
-    # Add the MCP server to Knowledge Flow FastAPI app
-    mcp = FastApiMCP(
-        app,  
-        name="Knowledge Flow MCP",  # Name for the MCP server
-        description="MCP server for Knowledge Flow",  # Description
-        include_tags=["Vector Search"],
-        describe_all_responses=True,  # Include all possible response schemas
-        describe_full_response_schema=True  # Include full JSON schema in descriptions
-    )
+# Mount the MCP server to Knowledge Flow FastAPI app
+mcp.mount()
 
-    # Mount the MCP server to Knowledge Flow FastAPI app
-    mcp.mount()
-
+if __name__ == "__main__":
     uvicorn.run(
-        app,
+        "main:app",
         host=args.server_address,
         port=args.server_port,
         log_level=args.server_log_level,
+        reload=args.server_reload,
+        reload_dirs=args.server_reload_dir
     )
-
-
-if __name__ == "__main__":
-    main()

@@ -345,3 +345,44 @@ Here is a typical launch.json file you need in knowledge-flow/.vscode folder:
 - Compatible with Azure OpenAI, OpenAI API, and (future) other LLM backends.
 
 ---
+
+## Docker compose
+
+This docker-compose.yml sets up the core services required to run Knowledge Flow OSS locally. It provides a consistent and automated way to start the development environment, including authentication (Keycloak), search (OpenSearch), and storage (MinIO) components. All these components are configured and connected. This simplifies onboarding, reduces setup errors, and ensures all developers work with the same infrastructure by running a few command lines.
+
+1. Add the entry `127.0.0.1 knowledge-flow-keycloak` into your file `/etc/hosts` 
+2. Go to `deploy/docker-compose` folder and run the command
+```
+docker compose up -d
+```
+3. Access the componants:
+
+    - Keycloak:
+        - url: http://localhost:8080
+        - admin user: admin
+        - password: Azerty123_
+        - realm: app
+
+    - MinIO:
+        - url: http://localhost:9001
+        - admin user: admin
+        - rw user: app_rw
+        - ro user: app_ro
+        - passwords: Azerty123_
+        - bucket: app-bucket
+
+    - Opensearch:
+        - url: http://localhost:5601
+        - admin user: admin
+        - rw user: app_rw
+        - ro user: app_ro
+        - passwords: Azerty123_
+        - index: app-index
+
+Hereunder these are the nominative SSO accounts registered into the Keycloak realms and their roles:
+
+- alice (role: admin): Azerty123_
+- bob (roles: editor, viewer): Azerty123_
+- phil (role: viewer): Azerty123_
+
+---

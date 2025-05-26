@@ -1,0 +1,43 @@
+FROM mirror.gcr.io/python:3.12.8-slim AS backend
+
+ARG USER_NAME=dev-user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+# Set the poetry env
+ENV POETRY_VIRTUALENVS_CREATE=true
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+ENV POETRY_CACHE_DIR=/tmp/poetry_cache
+
+# Setup user
+RUN groupadd -g ${GROUP_ID} ${USER_NAME} && \
+    useradd -s /bin/bash -u ${USER_ID} -g ${GROUP_ID} -m ${USER_NAME} && \
+    mkdir /app /opt/python && \
+    chown -R ${USER_ID}:${GROUP_ID} /app /opt/python
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y make git
+
+# Copy project files
+COPY . /app
+
+# Install poetry
+RUN pip install poetry==1.7.1
+
+# Move to workdir
+WORKDIR /app
+
+# Install dependancies
+RUN make dev
+
+# Expose default ports
+EXPOSE 8111
+
+# Change user
+USER ${USER_NAME}
+
+# Move to workdir
+WORKDIR /app
+
+ENTRYPOINT ["/bin/bash", "-c"]

@@ -1,23 +1,20 @@
 {
-  "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Knowledge Flow",
+      "name": "Debug knowledge-flow",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/knowledge_flow_app/main.py",
-      "console": "integratedTerminal",
-      "justMyCode": true,
+      "args": [
+        "--config-path",
+        "${workspaceFolder}/config/configuration.yaml",
+        "--server.reload"
+      ],
+      "envFile": "${workspaceFolder}/config/.env",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/knowledge_flow_app",
         "PATH": "${workspaceFolder}/.venv/bin:${env:PATH}",
         "LOG_LEVEL": "DEBUG"
-      },
-      "args": [
-        "--config-path",
-        "${workspaceFolder}/config/configuration.yaml"
-      ],
-      "python": "${workspaceFolder}/.venv/bin/python",
-    },
-  ]
+      }
+    }
 }
