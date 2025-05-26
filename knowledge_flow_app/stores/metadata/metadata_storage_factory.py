@@ -1,6 +1,21 @@
+# Copyright Thales 2025
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from knowledge_flow_app.application_context import ApplicationContext
 from knowledge_flow_app.config.metadata_store_local_settings import MetadataStoreLocalSettings
 from knowledge_flow_app.config.opensearch_settings import OpenSearchSettings
+from knowledge_flow_app.common.utils import validate_settings_or_exit
 from pathlib import Path
 
 from knowledge_flow_app.stores.metadata.base_metadata_store import BaseMetadataStore
@@ -21,7 +36,7 @@ def get_metadata_store() -> BaseMetadataStore:
         settings = MetadataStoreLocalSettings()
         return LocalMetadataStore(Path(settings.root_path).expanduser())
     elif config.type == "opensearch":
-        settings = OpenSearchSettings().validate_or_exit()
+        settings = validate_settings_or_exit(OpenSearchSettings, "OpenSearch Settings")
         return OpenSearchMetadataStore(
             host=settings.opensearch_host,
             username=settings.opensearch_user,
