@@ -16,16 +16,5 @@
         "PATH": "${workspaceFolder}/.venv/bin:${env:PATH}",
         "LOG_LEVEL": "DEBUG"
       }
-    },
-    {
-      "name": "Debug Pytest Current File",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "pytest",
-      "justMyCode": false,
-      "args": [
-        "${file}"
-      ]
     }
-  ]
 }

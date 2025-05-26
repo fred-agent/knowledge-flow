@@ -96,7 +96,10 @@ services:
       - >-
         bash /opt/opensearch-post-install-job/create_users_and_roles.sh knowledge-flow-opensearch &&
         bash /opt/opensearch-post-install-job/wait_for_os_init.sh knowledge-flow-opensearch &&
-        bash /opt/opensearch-post-install-job/create_indice.sh knowledge-flow-opensearch app-index
+        bash /opt/opensearch-post-install-job/create_indice.sh knowledge-flow-opensearch metadata-index &&
+        bash /opt/opensearch-post-install-job/create_indice.sh knowledge-flow-opensearch vector-index &&
+        bash /opt/opensearch-post-install-job/create_indice.sh knowledge-flow-opensearch active-sessions-index &&
+        bash /opt/opensearch-post-install-job/create_indice.sh knowledge-flow-opensearch chat-interactions-index
     volumes:
       - vol-opensearch-certs:/usr/share/opensearch/config/certs/
       - ./opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml

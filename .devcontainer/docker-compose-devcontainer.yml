@@ -8,6 +8,8 @@ services:
     image: knowledge-flow/devcontainer:0.1
     container_name: knowledge-flow-devcontainer
     hostname: knowledge-flow-devcontainer
+    environment:
+      no_proxy: "*"
     build:
       context: ../..
       dockerfile: .devcontainer/Dockerfile-devcontainer
