@@ -140,8 +140,9 @@ embedding:
   #
   # BACKEND: "ollama"
   # -------------------------------------
-  # - OLLAMA_EMBEDDING_MODEL_NAME
   # - OLLAMA_API_URL (optional)
+  # - OLLAMA_EMBEDDING_MODEL_NAME
+  # - OLLAMA_VISION_MODEL_NAME (optional, for vision tasks)
   #
   # All environment variables are expected to be present in the .env file
   # pointed to by the ENV_FILE variable in your Makefile.
