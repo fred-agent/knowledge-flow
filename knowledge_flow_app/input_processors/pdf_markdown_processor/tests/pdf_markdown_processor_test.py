@@ -14,9 +14,15 @@
 
 # tests/test_pdf_processor.py
 
+import os
+from dotenv import load_dotenv
 import pytest
 from pathlib import Path
 from knowledge_flow_app.input_processors.pdf_markdown_processor.pdf_markdown_processor import PdfMarkdownProcessor
+
+
+dotenv_path = os.getenv("ENV_FILE", "./config/.env")
+load_dotenv(dotenv_path)
 
 
 @pytest.fixture

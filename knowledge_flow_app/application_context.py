@@ -19,7 +19,7 @@ from knowledge_flow_app.common.structures import Configuration
 from knowledge_flow_app.common.utils import validate_settings_or_exit
 from knowledge_flow_app.config.embedding_azure_apim_settings import EmbeddingAzureApimSettings
 from knowledge_flow_app.config.embedding_azure_openai_settings import EmbeddingAzureOpenAISettings
-from knowledge_flow_app.config.embedding_ollama_settings import EmbeddingOllamaSettings
+from knowledge_flow_app.config.ollama_settings import OllamaSettings
 from knowledge_flow_app.config.embedding_openai_settings import EmbeddingOpenAISettings
 from knowledge_flow_app.config.opensearch_settings import OpenSearchSettings
 from knowledge_flow_app.output_processors.base_output_processor import BaseOutputProcessor
@@ -279,7 +279,7 @@ class ApplicationContext:
             return AzureApimEmbedder(settings)
         
         elif backend_type == "ollama":
-            ollama_settings = EmbeddingOllamaSettings()
+            ollama_settings = OllamaSettings()
             embedding_params = {
                 "model": ollama_settings.embedding_model_name,
             }
@@ -370,7 +370,7 @@ class ApplicationContext:
             except Exception:
                 logger.warning("⚠️ Failed to load Azure APIM settings — some variables may be missing.")
         elif backend == "ollama":
-            s = validate_settings_or_exit(EmbeddingOllamaSettings, "Ollama Embedding Settings")
+            s = validate_settings_or_exit(OllamaSettings, "Ollama Embedding Settings")
             logger.info(f"     ↳ Model: {s.embedding_model_name}")
             logger.info(f"     ↳ API URL: {s.api_url if s.api_url else 'default'}")
         else:
