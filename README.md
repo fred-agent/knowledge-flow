@@ -1,8 +1,8 @@
 # Knowledge Flow Backend
 
-A modular **FastAPI microservice** for ingesting and structuring knowledge from documents.
+A modular **FastAPI microservice** for extracting and structuring knowledge from ingested documents.
 This component is designed to be easily extended with various vector stores or completely different 
-output processing once you have extracted information and knowledge from your input documents. 
+output processing logics once you have extracted information and knowledge from your input documents. 
 
 ## ✨ Features
 
@@ -166,6 +166,9 @@ knowledge_flow_app/
 All main settings are controlled by a `configuration.yaml` file.
 Refer to the [config/configuration.yaml](config/configuration.yaml)  for a documented example.
 
+By default it uses only local and in memory stores. It should work without 
+third-party cots. Docker files are provided to help you start with a production setup easily. 
+
 ---
 
 ## Environment Setup
@@ -197,10 +200,10 @@ This file controls:
 
 ```env
 # Content Storage
-LOCAL_STORAGE_PATH=~/.knowledge-flow/content-store
+LOCAL_STORAGE_PATH=~/.fred/knowledge-flow/content-store
 
 # Metadata Storage
-LOCAL_STORAGE_PATH=~/.knowledge-flow/metadata-store.json
+LOCAL_STORAGE_PATH=~/.fred/knowledge-flow/metadata-store.json
 
 # OpenAI Settings
 OPENAI_API_KEY="your-openai-api-key"
@@ -299,28 +302,6 @@ Here is a typical launch.json file you need in knowledge-flow/.vscode folder:
     ]
   }
 ```
-
----
-
-## Endpoints
-
-### `/upload-documents`
-
-- Upload DOCX, PDF, or PPTX files.
-- Converts them to Markdown.
-- Stores both metadata and content in the configured backend.
-
-### `/documents/metadata`
-
-- Retrieve a filtered list of documents (based on metadata).
-
-### `/document/{uid}`
-
-- Get metadata for a specific document.
-
-### `/document/{uid}/retrievable`
-
-- Mark a document as retrievable (or not).
 
 ---
 

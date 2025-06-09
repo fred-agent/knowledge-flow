@@ -48,10 +48,7 @@ shortuuid = "^1.0.13"
 openpyxl = "^3.1.5"
 docling = "^2.34.0"
 hf-xet = "^1.1.1"
-torch = [
-  {platform = "darwin", version = "==2.2.2"},
-  {platform = "linux", version = "==2.7.0"}
-]
+torch = "2.7.0"
 langchain-ollama = "^0.3.3"
 fastapi-mcp = "^0.3.4"
 
