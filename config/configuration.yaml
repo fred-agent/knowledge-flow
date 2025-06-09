@@ -70,7 +70,7 @@ content_storage:
   # - GCS_SECURE
   # If you are using local storage, make sure to set the following environment variable:
   # - LOCAL_STORAGE_PATH default to '~/.knowledge-flow/content-store'
-  type: "minio"
+  type: "local"
 
 metadata_storage:
   # The metadata store type can be either "local" or "opensearch
@@ -82,7 +82,7 @@ metadata_storage:
   # - OPENSEARCH_INDEX
   # If you are using local storage, make sure to set the following environment variable:
   # - LOCAL_STORAGE_PATH default to '~/.knowledge-flow/metadata-store.json'
-  type: "opensearch"
+  type: "local"
 
 vector_storage:
   # The vector store type can be either "in_memory" or "opensearch"
@@ -99,7 +99,7 @@ vector_storage:
   #type: "opensearch"
   # If you are using local storage, make sure to set the following environment variable:
   # - LOCAL_VECTOR_STORAGE_PATH default to '~/.knowledge-flow/vector-store.json'
-  type: "opensearch"
+  type: "in_memory"
 
 embedding:
   # -----------------------------------------------------------------------------
