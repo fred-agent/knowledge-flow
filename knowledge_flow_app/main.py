@@ -33,6 +33,7 @@ from rich.logging import RichHandler
 from knowledge_flow_app.application_context import ApplicationContext
 from knowledge_flow_app.common.structures import Configuration
 from knowledge_flow_app.common.utils import parse_server_configuration
+from knowledge_flow_app.controllers.chat_profile_controller import ChatProfileController
 from knowledge_flow_app.controllers.content_controller import ContentController
 from knowledge_flow_app.controllers.ingestion_controller import \
     IngestionController
@@ -59,11 +60,12 @@ def configure_logging():
     )
     logging.getLogger().info(f"Logging configured at {log_level} level.")
     
+# --- Après tous les imports
+logger = logging.getLogger(__name__)
+
+# --- Dans create_app
 def create_app(config_path: str = "./config/configuration.yaml", base_url: str = "/knowledge/v1") -> FastAPI:
-    """
-    Creates the FastAPI application and registers routes and middleware.
-    """
-    global app
+    logger.info(f"🛠️ create_app() called with base_url={base_url}")
     configuration: Configuration = parse_server_configuration(config_path)
     ApplicationContext(configuration)
 
@@ -72,6 +74,7 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
         redoc_url=f"{base_url}/redoc",
         openapi_url=f"{base_url}/openapi.json",
     )
+    logger.info("✅ FastAPI instance created.")
 
     app.add_middleware(
         CORSMiddleware,
@@ -85,9 +88,15 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
     VectorSearchController(router)
     MetadataController(router)
     ContentController(router)
+    ChatProfileController(router)
+
+    logger.info("🧩 All controllers registered.")
     app.include_router(router, prefix=base_url)
+    logger.info(f"✅ Routes mounted with prefix: {base_url}")
+    logger.info(f"📦 Registered routes: {[route.path for route in app.routes]}")
 
     return app
+
 
 def parse_cli_opts():
     configure_logging()
