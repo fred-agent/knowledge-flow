@@ -98,3 +98,4 @@ class ChatProfile(BaseModel):
     updated_at: str
     documents: List[ChatProfileDocument]
     creator: str
+    tokens: int

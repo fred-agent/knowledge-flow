@@ -92,8 +92,6 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
 
     logger.info("🧩 All controllers registered.")
     app.include_router(router, prefix=base_url)
-    logger.info(f"✅ Routes mounted with prefix: {base_url}")
-    logger.info(f"📦 Registered routes: {[route.path for route in app.routes]}")
 
     return app
 

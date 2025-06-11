@@ -4,11 +4,29 @@ from uuid import uuid4
 from pathlib import Path
 import tempfile
 import json
+import tiktoken
+import logging
 
 from knowledge_flow_app.common.structures import ChatProfile, ChatProfileDocument
 from knowledge_flow_app.services.input_processor_service import InputProcessorService
 from knowledge_flow_app.stores.chatProfile.chat_profile_storage_factory import get_chat_profile_store
+from knowledge_flow_app.application_context import ApplicationContext
 
+logger = logging.getLogger(__name__)
+
+MAX_TOKENS_PER_PROFILE = 40000
+
+def count_tokens_from_markdown(md_path: Path) -> int:
+    embedder = ApplicationContext.get_instance().get_embedder()
+
+    try:
+        model_name = embedder.embedding.model_name
+        encoding = tiktoken.encoding_for_model(model_name)
+    except (AttributeError, KeyError):
+        encoding = tiktoken.get_encoding("cl100k_base")
+
+    text = md_path.read_text(encoding="utf-8")
+    return len(encoding.encode(text))
 
 class ChatProfileService:
     def __init__(self):
@@ -25,18 +43,16 @@ class ChatProfileService:
                     try:
                         profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
 
-                        # Backfill required fields if missing
                         profile_data["created_at"] = profile_data.get("created_at", datetime.now().isoformat())
                         profile_data["updated_at"] = profile_data.get("updated_at", datetime.now().isoformat())
                         profile_data["user_id"] = profile_data.get("user_id", "local")
                         profile_data["tokens"] = profile_data.get("tokens", 0)
                         profile_data["creator"] = profile_data.get("creator", "system")
 
-                        # Load documents from metadata or reconstruct
+                        documents = []
                         if "documents" in profile_data:
                             documents = [ChatProfileDocument(**doc) for doc in profile_data["documents"]]
                         else:
-                            documents = []
                             files_dir = dir_path / "files"
                             if files_dir.exists():
                                 for file_path in files_dir.iterdir():
@@ -44,15 +60,26 @@ class ChatProfileService:
                                         id=file_path.stem,
                                         document_name=file_path.name,
                                         document_type=file_path.suffix[1:],
-                                        size=file_path.stat().st_size
+                                        size=file_path.stat().st_size,
+                                        tokens=0
                                     ))
                         profile_data["documents"] = documents
 
-                        profile = ChatProfile(**profile_data)
+                        profile = ChatProfile(
+                            id=profile_data["id"],
+                            title=profile_data.get("title", ""),
+                            description=profile_data.get("description", ""),
+                            created_at=profile_data.get("created_at", datetime.utcnow().isoformat()),
+                            updated_at=profile_data.get("updated_at", datetime.utcnow().isoformat()),
+                            creator=profile_data.get("creator", "system"),
+                            user_id=profile_data.get("user_id", "local"),
+                            tokens=profile_data.get("tokens", 0),
+                            documents=documents
+                        )
                         all_profiles.append(profile)
 
                     except Exception as e:
-                        print(f"⚠️ Failed to parse {profile_path}: {e}")
+                        logger.error(f"Failed to load profile from {profile_path}: {e}", exc_info=True)
 
         return all_profiles
 
@@ -66,6 +93,7 @@ class ChatProfileService:
             files_subdir.mkdir(parents=True, exist_ok=True)
 
             documents = []
+            total_tokens = 0
 
             for file in files_dir.iterdir():
                 if file.is_file():
@@ -78,35 +106,40 @@ class ChatProfileService:
                             "document_uid": file.stem
                         }
 
-                        # Copy file to processing input
                         temp_input_file = processing_dir / file.name
                         shutil.copy(file, temp_input_file)
 
-                        # Run processor
                         self.processor.process(
                             output_dir=processing_dir,
                             input_file=file.name,
                             input_file_metadata=input_metadata
                         )
 
-                        # Find and rename the output .md file
                         output_md = next((processing_dir / "output").glob("*.md"), None)
-                        if output_md:
-                            new_md_name = f"{file.stem}.md"
-                            dest_path = files_subdir / new_md_name
-                            shutil.move(str(output_md), dest_path)
+                        if not output_md:
+                            raise FileNotFoundError(f"No .md output found for {file.name}")
 
-                            documents.append(ChatProfileDocument(
-                                id=file.stem,
-                                document_name=file.name,  # original file name for display
-                                document_type=file.suffix[1:],  # e.g. "pdf"
-                                size=file.stat().st_size
-                            ))
+                        new_md_name = f"{file.stem}.md"
+                        dest_path = files_subdir / new_md_name
+                        shutil.move(str(output_md), dest_path)
+
+                        token_count = count_tokens_from_markdown(dest_path)
+                        total_tokens += token_count
+
+                        if total_tokens > MAX_TOKENS_PER_PROFILE:
+                            raise ValueError(f"Profile exceeds the {MAX_TOKENS_PER_PROFILE} token limit.")
+
+                        documents.append(ChatProfileDocument(
+                            id=file.stem,
+                            document_name=file.name,
+                            document_type=file.suffix[1:],
+                            size=file.stat().st_size,
+                            tokens=token_count
+                        ))
 
                     except Exception as e:
-                        print(f"⚠️ Failed to process file {file.name}: {e}")
+                        logger.error(f"Failed to process file '{file.name}': {e}", exc_info=True)
 
-            # Build metadata dict
             now = datetime.utcnow().isoformat()
             metadata = {
                 "id": profile_id,
@@ -115,27 +148,15 @@ class ChatProfileService:
                 "created_at": now,
                 "updated_at": now,
                 "creator": "system",
-                "documents": [doc.model_dump() for doc in documents]
+                "documents": [doc.model_dump() for doc in documents],
+                "tokens": total_tokens,
+                "user_id": "local"
             }
 
-            # Write metadata to profile.json
             (profile_dir / "profile.json").write_text(
                 json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-            # Save profile directory
             self.store.save_profile(profile_id, profile_dir)
 
-        # Remove 'documents' from metadata to avoid double passing
-        metadata.pop("documents", None)
-
-        return ChatProfile(
-            **metadata,
-            documents=documents,
-            tokens=0,
-            user_id="local"
-        )
-
-    async def delete_profile(self, profile_id: str):
-        self.store.delete_profile(profile_id)
-        return {"success": True}
+        return ChatProfile(**metadata)
