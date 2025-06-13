@@ -160,3 +160,33 @@ class ChatProfileService:
             self.store.save_profile(profile_id, profile_dir)
 
         return ChatProfile(**metadata)
+
+    async def delete_profile(self, profile_id: str):
+        self.store.delete_profile(profile_id)
+        return {"success": True}
+    
+    async def get_profile_with_markdown(self, profile_id: str) -> dict:
+        """
+        Load profile metadata and associated markdown content.
+        """
+        root_path: Path = self.store.root_path / profile_id
+        profile_path = root_path / "profile.json"
+        files_path = root_path / "files"
+
+        if not profile_path.exists():
+            raise FileNotFoundError("Profile not found")
+
+        profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
+
+        markdown = ""
+        if files_path.exists():
+            for file in sorted(files_path.glob("*.md")):
+                markdown += f"\n\n# {file.name}\n\n"
+                markdown += file.read_text(encoding="utf-8")
+
+        return {
+            "id": profile_data["id"],
+            "title": profile_data.get("title", ""),
+            "description": profile_data.get("description", ""),
+            "markdown": markdown.strip()
+        }

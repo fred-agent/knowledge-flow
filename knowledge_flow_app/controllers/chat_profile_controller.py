@@ -3,6 +3,7 @@ from knowledge_flow_app.services.chat_profile_service import ChatProfileService
 import tempfile
 from pathlib import Path
 import shutil
+import json
 
 class ChatProfileController:
     def __init__(self, router: APIRouter):
@@ -13,6 +14,15 @@ class ChatProfileController:
         @router.get("/chatProfiles")
         async def list_profiles():
             return await self.service.list_profiles()
+
+        @router.get("/chatProfiles/{chatProfile_id}")
+        async def get_profile(chatProfile_id: str):
+            try:
+                return await self.service.get_profile_with_markdown(chatProfile_id)
+            except FileNotFoundError:
+                raise HTTPException(status_code=404, detail="Profile not found")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to load profile: {str(e)}")
 
         @router.post("/chatProfiles")
         async def create_profile(
