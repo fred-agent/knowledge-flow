@@ -4,7 +4,7 @@ readme = "README.md"
 version = "0.1"
 description = "A knowledge flow backend to manage and serve knowledge base."
 authors = [
-    {name = "Fred", email = "noreply@example.com"}
+    {name = "Knowledge Flow", email = "noreply@example.com"}
 ]
 requires-python = ">=3.12,<3.13"
 
@@ -36,7 +36,7 @@ dependencies = [
   "openpyxl==3.1.5",
   "docling==2.34.0",
   "hf-xet==1.1.1",
-  "torch=2.7.0",
+  "torch==2.7.0",
   "langchain-ollama==0.3.3",
   "fastapi-mcp==0.3.4"
 ]
