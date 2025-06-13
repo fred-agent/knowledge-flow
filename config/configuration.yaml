@@ -2,6 +2,8 @@
 security:
   enabled: false
   keycloak_url: "http://fred-keycloak:8080/realms/fred"
+  authorized_origins:
+  - "http://localhost:5173"
 
 # -----------------------------------------------------------------------------
 # INPUT PROCESSORS

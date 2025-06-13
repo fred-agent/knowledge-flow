@@ -59,7 +59,7 @@ class Security(BaseModel):
     enabled: bool = True
     keycloak_url: str = "http://localhost:9080/realms/knowledge-flow"
     client_id: str = "knowledge-flow"
-
+    authorized_origins: List[str] = ["http://localhost:5173"]
 
 class ContentStorageConfig(BaseModel):
     type: str = Field(..., description="The storage backend to use (e.g., 'local', 'minio')")
