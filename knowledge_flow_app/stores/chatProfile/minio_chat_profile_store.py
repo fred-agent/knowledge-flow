@@ -123,3 +123,11 @@ class MinioChatProfileStore(BaseChatProfileStore):
             logger.error(f"Erreur lors de la liste des profils MinIO : {e}", exc_info=True)
 
         return profiles
+    
+    def delete_markdown_file(self, profile_id: str, document_id: str) -> None:
+        key = f"{profile_id}/files/{document_id}.md"
+        try:
+            self.client.remove_object(self.bucket_name, key)
+            logger.info(f"Deleted markdown file {key} from MinIO bucket {self.bucket_name}")
+        except Exception as e:
+            logger.warning(f"Could not delete markdown file {key}: {e}")

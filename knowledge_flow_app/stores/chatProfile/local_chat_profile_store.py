@@ -66,3 +66,8 @@ class LocalChatProfileStore(BaseChatProfileStore):
                 logger.error(f"Failed to read markdown file {file_path}: {e}", exc_info=True)
 
         return result
+
+    def delete_markdown_file(self, profile_id: str, document_id: str) -> None:
+        file_path = self.root_path / profile_id / "files" / f"{document_id}.md"
+        if file_path.exists():
+            file_path.unlink()

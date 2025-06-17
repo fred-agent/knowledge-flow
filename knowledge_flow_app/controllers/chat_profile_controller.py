@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from knowledge_flow_app.services.chat_profile_service import ChatProfileService
 import tempfile
 from pathlib import Path
+from knowledge_flow_app.application_context import ApplicationContext
+
 
 class UpdateChatProfileRequest(BaseModel):
     title: str
@@ -13,6 +15,13 @@ class ChatProfileController:
         self._register_routes(router)
 
     def _register_routes(self, router: APIRouter):
+        
+        @router.get("/chatProfiles/maxTokens")
+        async def get_max_tokens():
+            from knowledge_flow_app.application_context import ApplicationContext
+            context = ApplicationContext.get_instance()
+            return {"max_tokens": context.get_chat_profile_max_tokens()}
+
         @router.get("/chatProfiles")
         async def list_profiles():
             return await self.service.list_profiles()
@@ -47,8 +56,14 @@ class ChatProfileController:
                 raise HTTPException(status_code=500, detail=str(e))
 
         @router.put("/chatProfiles/{chatProfile_id}")
-        async def update_profile(chatProfile_id: str, data: UpdateChatProfileRequest):
-            return await self.service.update_profile(chatProfile_id, data.title, data.description)
+        async def update_profile(
+            chatProfile_id: str,
+            title: str = Form(...),
+            description: str = Form(...),
+            files: list[UploadFile] = File(default=[])
+        ):
+            return await self.service.update_profile(chatProfile_id, title, description, files)
+
 
         @router.delete("/chatProfiles/{chatProfile_id}")
         async def delete_profile(chatProfile_id: str):

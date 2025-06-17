@@ -85,11 +85,13 @@ class Configuration(BaseModel):
     vector_storage: VectorStorageConfig = Field(..., description="Vector storage configuration")
     embedding: EmbeddingConfig = Field(..., description="Embedding configuration")  
     chat_profile_storage: ChatProfileStorageConfig = Field(...,description="Chat Profile storage configuration")
+    chat_profile_max_tokens: int = 50000
 class ChatProfileDocument(BaseModel):
     id: str
     document_name: str
     document_type: str
     size: Optional[int] = None
+    tokens: Optional[int] = Field(default=0)
 class ChatProfile(BaseModel):
     id: str
     title: str

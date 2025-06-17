@@ -419,5 +419,8 @@ class ApplicationContext:
         logger.info("--------------------------------------------------")
 
 
+    def get_chat_profile_max_tokens(self) -> int:
+        return self.config.chat_profile_max_tokens
+
 
 

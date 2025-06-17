@@ -1,11 +1,12 @@
 from datetime import datetime
 import shutil
+from typing import List
 from uuid import uuid4
 from pathlib import Path
 import tempfile
 import json
 
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 import tiktoken
 import logging
 
@@ -175,45 +176,101 @@ class ChatProfileService:
             logger.error(f"Error loading profile with markdown: {e}")
             raise
 
-
-    async def update_profile(self, profile_id: str, title: str, description: str) -> ChatProfile:
+    async def update_profile(self, profile_id: str, title: str, description: str, files: list[UploadFile]) -> ChatProfile:
         try:
-            # Load current profile metadata
+            # Load and update base metadata
             metadata = self.store.get_profile_description(profile_id)
-
-            # Update fields
             metadata["title"] = title
             metadata["description"] = description
             metadata["updated_at"] = datetime.utcnow().isoformat()
+            print(files)
 
-            # Reconstruct the profile directory with updated metadata
+            # Merge existing documents
+            existing_documents = {doc["id"]: doc for doc in metadata.get("documents", [])}
+            total_tokens = sum(doc.get("tokens", 0) for doc in existing_documents.values())
+
+            processed_documents = []
+
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_path = Path(tmp_dir)
+
+                for upload in files:
+                    file_path = tmp_path / upload.filename
+                    with open(file_path, "wb") as f:
+                        f.write(await upload.read())
+
+                    try:
+                        # Process file
+                        processing_dir = tmp_path / f"{file_path.stem}_processing"
+                        processing_dir.mkdir(parents=True, exist_ok=True)
+
+                        shutil.copy(file_path, processing_dir / file_path.name)
+
+                        self.processor.process(
+                            output_dir=processing_dir,
+                            input_file=file_path.name,
+                            input_file_metadata={
+                                "source_file": file_path.name,
+                                "document_uid": file_path.stem
+                            }
+                        )
+
+                        md_output = next((processing_dir / "output").glob("*.md"), None)
+                        if not md_output:
+                            raise FileNotFoundError(f"No markdown generated for {file_path.name}")
+
+                        token_count = count_tokens_from_markdown(md_output)
+                        total_tokens += token_count
+
+                        if total_tokens > MAX_TOKENS_PER_PROFILE:
+                            raise ValueError("Token limit exceeded")
+
+                        # Build doc object
+                        doc = ChatProfileDocument(
+                            id=file_path.stem,
+                            document_name=file_path.name,
+                            document_type=file_path.suffix[1:],
+                            size=file_path.stat().st_size,
+                            tokens=token_count
+                        )
+
+                        existing_documents[doc.id] = doc.model_dump()
+                        processed_documents.append((doc.id, md_output))
+
+                    except Exception as e:
+                        logger.error(f"Failed to process {upload.filename}: {e}", exc_info=True)
+
+                # Final metadata
+                metadata["tokens"] = total_tokens
+                metadata["documents"] = list(existing_documents.values())
+
+                # Prepare full profile structure
                 profile_dir = tmp_path / profile_id
-                profile_dir.mkdir(parents=True, exist_ok=True)
+                files_dir = profile_dir / "files"
+                files_dir.mkdir(parents=True, exist_ok=True)
 
-                # Write updated profile.json
-                profile_path = profile_dir / "profile.json"
-                profile_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+                # Copy existing md files (except overwritten ones)
+                existing_filenames = [f"{doc_id}.md" for doc_id, _ in processed_documents]
+                for filename, content in self.store.list_markdown_files(profile_id):
+                    if filename not in existing_filenames:
+                        (files_dir / filename).write_text(content, encoding="utf-8")
 
-                # Re-copy existing markdown files (if any)
-                if hasattr(self.store, "list_markdown_files"):
-                    md_files = self.store.list_markdown_files(profile_id)
-                    if md_files:
-                        files_dir = profile_dir / "files"
-                        files_dir.mkdir(parents=True, exist_ok=True)
-                        for filename, content in md_files:
-                            (files_dir / filename).write_text(content, encoding="utf-8")
+                # Add new md files
+                for doc_id, md_file in processed_documents:
+                    shutil.copy(md_file, files_dir / f"{doc_id}.md")
 
-                # Save profile using the appropriate store backend (local or MinIO)
+                # Write profile.json
+                (profile_dir / "profile.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                # Save using store
                 self.store.save_profile(profile_id, profile_dir)
 
             return ChatProfile(**metadata)
 
         except Exception as e:
-            logger.error(f"Failed to update chat profile {profile_id}: {e}", exc_info=True)
-            raise
-        
+            logger.error(f"Failed to update profile {profile_id}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to update profile")
+
     async def delete_document(self, profile_id: str, document_id: str):
         try:
             # Load the current profile metadata
@@ -235,24 +292,32 @@ class ChatProfileService:
                         doc["tokens"] = tokens
                         total_tokens += tokens
                 except Exception as e:
-                    # skip missing or unreadable docs
-                    continue
+                    logger.warning(f"Could not read markdown for token count: {e}")
 
             metadata["tokens"] = total_tokens
 
-            # Reconstruct the profile directory
+            # Delete markdown files
+            if hasattr(self.store, "delete_markdown_file"):
+                try:
+                    self.store.delete_markdown_file(profile_id, document_id)
+                except Exception as e:
+                    logger.warning(f"Failed to delete markdown file for {document_id}: {e}")
+
+            # Recreate profile directory
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_path = Path(tmp_dir)
                 profile_dir = tmp_path / profile_id
                 files_dir = profile_dir / "files"
                 files_dir.mkdir(parents=True, exist_ok=True)
 
-                # Copy all remaining markdown files
                 for doc in updated_documents:
                     filename = f"{doc['id']}.md"
-                    with self.store.get_document(profile_id, filename) as f:
-                        content = f.read().decode("utf-8")
-                        (files_dir / filename).write_text(content, encoding="utf-8")
+                    try:
+                        with self.store.get_document(profile_id, filename) as f:
+                            content = f.read().decode("utf-8")
+                            (files_dir / filename).write_text(content, encoding="utf-8")
+                    except Exception as e:
+                        logger.warning(f"Could not copy remaining file {filename}: {e}")
 
                 # Write updated profile.json
                 profile_path = profile_dir / "profile.json"
