@@ -151,3 +151,4 @@ embedding:
 
 chat_profile_storage:
   type: local
+chat_profile_max_tokens: 8000
