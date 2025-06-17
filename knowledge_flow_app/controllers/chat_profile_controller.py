@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from pydantic import BaseModel
 from knowledge_flow_app.services.chat_profile_service import ChatProfileService
 import tempfile
 from pathlib import Path
-import shutil
-import json
 
+class UpdateChatProfileRequest(BaseModel):
+    title: str
+    description: str
 class ChatProfileController:
     def __init__(self, router: APIRouter):
         self.service = ChatProfileService()
@@ -45,8 +47,8 @@ class ChatProfileController:
                 raise HTTPException(status_code=500, detail=str(e))
 
         @router.put("/chatProfiles/{chatProfile_id}")
-        async def update_profile(chatProfile_id: str, title: str, description: str):
-            return await self.service.update_profile(chatProfile_id, title, description)
+        async def update_profile(chatProfile_id: str, data: UpdateChatProfileRequest):
+            return await self.service.update_profile(chatProfile_id, data.title, data.description)
 
         @router.delete("/chatProfiles/{chatProfile_id}")
         async def delete_profile(chatProfile_id: str):

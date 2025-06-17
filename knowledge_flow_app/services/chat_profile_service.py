@@ -4,6 +4,8 @@ from uuid import uuid4
 from pathlib import Path
 import tempfile
 import json
+
+from fastapi import HTTPException
 import tiktoken
 import logging
 
@@ -34,52 +36,36 @@ class ChatProfileService:
         self.processor = InputProcessorService()
 
     async def list_profiles(self):
+        raw_profiles = self.store.list_profiles()
         all_profiles = []
 
-        for dir_path in self.store.root_path.iterdir():
-            if dir_path.is_dir():
-                profile_path = dir_path / "profile.json"
-                if profile_path.exists():
-                    try:
-                        profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
+        for profile_data in raw_profiles:
+            try:
+                profile_data["created_at"] = profile_data.get("created_at", datetime.now().isoformat())
+                profile_data["updated_at"] = profile_data.get("updated_at", datetime.now().isoformat())
+                profile_data["user_id"] = profile_data.get("user_id", "local")
+                profile_data["tokens"] = profile_data.get("tokens", 0)
+                profile_data["creator"] = profile_data.get("creator", "system")
 
-                        profile_data["created_at"] = profile_data.get("created_at", datetime.now().isoformat())
-                        profile_data["updated_at"] = profile_data.get("updated_at", datetime.now().isoformat())
-                        profile_data["user_id"] = profile_data.get("user_id", "local")
-                        profile_data["tokens"] = profile_data.get("tokens", 0)
-                        profile_data["creator"] = profile_data.get("creator", "system")
+                documents = []
+                if "documents" in profile_data:
+                    documents = [ChatProfileDocument(**doc) for doc in profile_data["documents"]]
 
-                        documents = []
-                        if "documents" in profile_data:
-                            documents = [ChatProfileDocument(**doc) for doc in profile_data["documents"]]
-                        else:
-                            files_dir = dir_path / "files"
-                            if files_dir.exists():
-                                for file_path in files_dir.iterdir():
-                                    documents.append(ChatProfileDocument(
-                                        id=file_path.stem,
-                                        document_name=file_path.name,
-                                        document_type=file_path.suffix[1:],
-                                        size=file_path.stat().st_size,
-                                        tokens=0
-                                    ))
-                        profile_data["documents"] = documents
+                profile = ChatProfile(
+                    id=profile_data["id"],
+                    title=profile_data.get("title", ""),
+                    description=profile_data.get("description", ""),
+                    created_at=profile_data["created_at"],
+                    updated_at=profile_data["updated_at"],
+                    creator=profile_data["creator"],
+                    user_id=profile_data["user_id"],
+                    tokens=profile_data["tokens"],
+                    documents=documents
+                )
 
-                        profile = ChatProfile(
-                            id=profile_data["id"],
-                            title=profile_data.get("title", ""),
-                            description=profile_data.get("description", ""),
-                            created_at=profile_data.get("created_at", datetime.utcnow().isoformat()),
-                            updated_at=profile_data.get("updated_at", datetime.utcnow().isoformat()),
-                            creator=profile_data.get("creator", "system"),
-                            user_id=profile_data.get("user_id", "local"),
-                            tokens=profile_data.get("tokens", 0),
-                            documents=documents
-                        )
-                        all_profiles.append(profile)
-
-                    except Exception as e:
-                        logger.error(f"Failed to load profile from {profile_path}: {e}", exc_info=True)
+                all_profiles.append(profile)
+            except Exception as e:
+                logger.error(f"Failed to parse profile: {e}", exc_info=True)
 
         return all_profiles
 
@@ -169,24 +155,114 @@ class ChatProfileService:
         """
         Load profile metadata and associated markdown content.
         """
-        root_path: Path = self.store.root_path / profile_id
-        profile_path = root_path / "profile.json"
-        files_path = root_path / "files"
+        try:
+            profile_data = self.store.get_profile_description(profile_id)
 
-        if not profile_path.exists():
-            raise FileNotFoundError("Profile not found")
+            markdown = ""
+            if hasattr(self.store, "list_markdown_files"):
+                md_files = self.store.list_markdown_files(profile_id)
+                for filename, content in md_files:
+                    markdown += f"\n\n# {filename}\n\n{content}"
 
-        profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
+            return {
+                "id": profile_data["id"],
+                "title": profile_data.get("title", ""),
+                "description": profile_data.get("description", ""),
+                "markdown": markdown.strip()
+            }
 
-        markdown = ""
-        if files_path.exists():
-            for file in sorted(files_path.glob("*.md")):
-                markdown += f"\n\n# {file.name}\n\n"
-                markdown += file.read_text(encoding="utf-8")
+        except Exception as e:
+            logger.error(f"Error loading profile with markdown: {e}")
+            raise
 
-        return {
-            "id": profile_data["id"],
-            "title": profile_data.get("title", ""),
-            "description": profile_data.get("description", ""),
-            "markdown": markdown.strip()
-        }
+
+    async def update_profile(self, profile_id: str, title: str, description: str) -> ChatProfile:
+        try:
+            # Load current profile metadata
+            metadata = self.store.get_profile_description(profile_id)
+
+            # Update fields
+            metadata["title"] = title
+            metadata["description"] = description
+            metadata["updated_at"] = datetime.utcnow().isoformat()
+
+            # Reconstruct the profile directory with updated metadata
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = Path(tmp_dir)
+                profile_dir = tmp_path / profile_id
+                profile_dir.mkdir(parents=True, exist_ok=True)
+
+                # Write updated profile.json
+                profile_path = profile_dir / "profile.json"
+                profile_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                # Re-copy existing markdown files (if any)
+                if hasattr(self.store, "list_markdown_files"):
+                    md_files = self.store.list_markdown_files(profile_id)
+                    if md_files:
+                        files_dir = profile_dir / "files"
+                        files_dir.mkdir(parents=True, exist_ok=True)
+                        for filename, content in md_files:
+                            (files_dir / filename).write_text(content, encoding="utf-8")
+
+                # Save profile using the appropriate store backend (local or MinIO)
+                self.store.save_profile(profile_id, profile_dir)
+
+            return ChatProfile(**metadata)
+
+        except Exception as e:
+            logger.error(f"Failed to update chat profile {profile_id}: {e}", exc_info=True)
+            raise
+        
+    async def delete_document(self, profile_id: str, document_id: str):
+        try:
+            # Load the current profile metadata
+            metadata = self.store.get_profile_description(profile_id)
+
+            # Remove the document from metadata
+            updated_documents = [doc for doc in metadata.get("documents", []) if doc["id"] != document_id]
+            metadata["documents"] = updated_documents
+            metadata["updated_at"] = datetime.utcnow().isoformat()
+
+            # Recalculate tokens
+            total_tokens = 0
+            for doc in updated_documents:
+                try:
+                    markdown_file = f"{doc['id']}.md"
+                    with self.store.get_document(profile_id, markdown_file) as f:
+                        content = f.read().decode("utf-8")
+                        tokens = len(tiktoken.get_encoding("cl100k_base").encode(content))
+                        doc["tokens"] = tokens
+                        total_tokens += tokens
+                except Exception as e:
+                    # skip missing or unreadable docs
+                    continue
+
+            metadata["tokens"] = total_tokens
+
+            # Reconstruct the profile directory
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = Path(tmp_dir)
+                profile_dir = tmp_path / profile_id
+                files_dir = profile_dir / "files"
+                files_dir.mkdir(parents=True, exist_ok=True)
+
+                # Copy all remaining markdown files
+                for doc in updated_documents:
+                    filename = f"{doc['id']}.md"
+                    with self.store.get_document(profile_id, filename) as f:
+                        content = f.read().decode("utf-8")
+                        (files_dir / filename).write_text(content, encoding="utf-8")
+
+                # Write updated profile.json
+                profile_path = profile_dir / "profile.json"
+                profile_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                # Save everything
+                self.store.save_profile(profile_id, profile_dir)
+
+            return {"success": True}
+
+        except Exception as e:
+            logger.error(f"Error deleting document '{document_id}' from profile '{profile_id}': {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to delete document '{document_id}'")

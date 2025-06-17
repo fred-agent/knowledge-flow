@@ -2,7 +2,7 @@ import json
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, List
 
 from minio import Minio
 from minio.error import S3Error
@@ -79,3 +79,47 @@ class MinioChatProfileStore(BaseChatProfileStore):
         except S3Error as e:
             logger.error(f"Failed to fetch document '{document_name}' for {profile_id}: {e}")
             raise FileNotFoundError(f"Document '{document_name}' not found in chat profile: {profile_id}")
+
+    def list_markdown_files(self, profile_id: str) -> list[tuple[str, str]]:
+        result = []
+        prefix = f"{profile_id}/files/"
+        try:
+            for obj in self.client.list_objects(self.bucket_name, prefix=prefix, recursive=True):
+                if obj.object_name.endswith(".md"):
+                    response = self.client.get_object(self.bucket_name, obj.object_name)
+                    content = response.read().decode("utf-8")
+                    filename = obj.object_name.split("/")[-1]
+                    result.append((filename, content))
+        except S3Error as e:
+            logger.error(f"Error listing markdowns for profile {profile_id}: {e}")
+        return result
+
+
+    def list_profiles(self) -> List[dict]:
+        """
+        Liste les profils disponibles dans le bucket MinIO.
+        Chaque profil doit avoir un fichier profile.json à la racine de son dossier.
+        """
+        profiles = []
+
+        try:
+            # Récupère les objets profile.json à la racine de chaque dossier de profil
+            objects = self.client.list_objects(self.bucket_name, recursive=True)
+
+            profile_json_paths = [
+                obj.object_name for obj in objects
+                if obj.object_name.endswith("profile.json") and obj.object_name.count("/") == 1
+            ]
+
+            for obj_path in profile_json_paths:
+                try:
+                    response = self.client.get_object(self.bucket_name, obj_path)
+                    profile_data = json.loads(response.read().decode("utf-8"))
+                    profiles.append(profile_data)
+                except Exception as e:
+                    logger.error(f"Erreur lors de la lecture de {obj_path} : {e}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"Erreur lors de la liste des profils MinIO : {e}", exc_info=True)
+
+        return profiles
