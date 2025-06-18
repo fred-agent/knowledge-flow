@@ -73,6 +73,9 @@ class VectorStorageConfig(BaseModel):
 class EmbeddingConfig(BaseModel):
     type: str = Field(..., description="The embedding backend to use (e.g., 'openai', 'azureopenai')")
 
+class ChatProfileStorageConfig(BaseModel):
+    type: str = Field(..., description="The storage backend to use (e.g., 'local', 'minio')")
+
 class Configuration(BaseModel):
     security: Security
     input_processors: List[ProcessorConfig]
@@ -81,3 +84,20 @@ class Configuration(BaseModel):
     metadata_storage: MetadataStorageConfig = Field(..., description="Metadata storage configuration")
     vector_storage: VectorStorageConfig = Field(..., description="Vector storage configuration")
     embedding: EmbeddingConfig = Field(..., description="Embedding configuration")  
+    chat_profile_storage: ChatProfileStorageConfig = Field(...,description="Chat Profile storage configuration")
+    chat_profile_max_tokens: int = 50000
+class ChatProfileDocument(BaseModel):
+    id: str
+    document_name: str
+    document_type: str
+    size: Optional[int] = None
+    tokens: Optional[int] = Field(default=0)
+class ChatProfile(BaseModel):
+    id: str
+    title: str
+    description: str
+    created_at: str
+    updated_at: str
+    documents: List[ChatProfileDocument]
+    creator: str
+    tokens: int
