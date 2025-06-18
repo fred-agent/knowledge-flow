@@ -78,7 +78,7 @@ def create_app(config_path: str = "./config/configuration.yaml", base_url: str =
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=configuration.security.authorized_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
